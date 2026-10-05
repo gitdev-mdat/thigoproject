@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "THIGO Customer",
+    "slug": "thigo-customer",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic"
+  }
+}

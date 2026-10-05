@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+  - "apps/mobile/*"
+  - "packages/*"
+
+onlyBuiltDependencies:
+  - "@nestjs/core"
+  - "sharp"

@@ -1,0 +1,29 @@
+{
+  "name": "@thigo/merchant",
+  "version": "0.0.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "dev": "expo start",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "build": "expo export --platform android --output-dir dist",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@thigo/design-tokens": "workspace:*",
+    "expo": "~57.0.26",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3"
+  },
+  "devDependencies": {
+    "@thigo/typescript-config": "workspace:*",
+    "@types/react": "~19.2.4",
+    "typescript": "~6.0.3",
+    "vitest": "5.0.3"
+  }
+}

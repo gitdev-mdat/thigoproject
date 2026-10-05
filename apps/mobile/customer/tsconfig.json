@@ -1,0 +1,10 @@
+{
+  "extends": [
+    "expo/tsconfig.base",
+    "@thigo/typescript-config/react-native.json"
+  ],
+  "compilerOptions": {
+    "types": ["react", "vitest/globals"]
+  },
+  "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx"]
+}

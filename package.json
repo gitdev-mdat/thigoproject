@@ -1,0 +1,43 @@
+{
+  "name": "thigo",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.13.0",
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=11.13.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "check": "pnpm format:check && turbo run lint typecheck test build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dev:customer": "pnpm --filter @thigo/customer dev",
+    "dev:merchant": "pnpm --filter @thigo/merchant dev",
+    "dev:driver": "pnpm --filter @thigo/driver dev",
+    "dev:admin": "pnpm --filter @thigo/admin-web dev",
+    "dev:api": "pnpm --filter @thigo/api dev",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "db:migration:create": "pnpm --filter @thigo/api db:migration:create",
+    "db:migration:generate": "pnpm --filter @thigo/api db:migration:generate",
+    "db:migrate": "pnpm --filter @thigo/api db:migrate",
+    "db:migrate:revert": "pnpm --filter @thigo/api db:migrate:revert",
+    "db:migration:show": "pnpm --filter @thigo/api db:migration:show",
+    "ai:doctor": "uv run --directory .ai/crew thigo-ai-doctor",
+    "ai:smoke": "uv run --directory .ai/crew thigo-ai-smoke"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.12.0",
+    "prettier": "3.9.9",
+    "turbo": "2.11.7",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.0"
+  }
+}

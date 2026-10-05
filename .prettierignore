@@ -1,0 +1,10 @@
+node_modules
+dist
+.next
+.expo
+coverage
+.turbo
+.ai/crew/.venv
+.ai/reports
+pnpm-lock.yaml
+uv.lock
