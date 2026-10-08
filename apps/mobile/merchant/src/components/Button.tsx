@@ -18,7 +18,11 @@ import {
 type Props = {
   label: string;
   onPress: () => void;
-  variant?: "primary" | "secondary" | "tertiary";
+  /**
+   * `danger` is a destructive alternative on a neutral surface (e.g. "Từ chối");
+   * `destructive` is the filled confirmation of an irreversible action.
+   */
+  variant?: "primary" | "secondary" | "tertiary" | "danger" | "destructive";
   prominent?: boolean;
   loading?: boolean;
   loadingLabel?: string;
@@ -40,11 +44,13 @@ export function Button({
   const textColor =
     disabled && !loading
       ? colors.text.disabled
-      : variant === "primary"
+      : variant === "primary" || variant === "destructive"
         ? colors.text.inverse
         : variant === "secondary"
           ? colors.text.primary
-          : colors.text.link;
+          : variant === "danger"
+            ? colors.status.danger
+            : colors.text.link;
   return (
     <Pressable
       accessibilityRole="button"
@@ -87,6 +93,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border.default
   },
   tertiary: { paddingHorizontal: spacing.sm },
+  danger: {
+    backgroundColor: colors.surface.primary,
+    borderWidth: 1,
+    borderColor: colors.border.default
+  },
+  destructive: { backgroundColor: colors.action.destructive },
   disabled: {
     backgroundColor: colors.action.disabled,
     borderColor: colors.action.disabled
@@ -98,5 +110,7 @@ const styles = StyleSheet.create({
 const pressedStyles = StyleSheet.create({
   primary: { backgroundColor: colors.brand.primaryPressed },
   secondary: { backgroundColor: colors.action.secondaryPressed },
-  tertiary: { backgroundColor: colors.action.secondaryPressed }
+  tertiary: { backgroundColor: colors.action.secondaryPressed },
+  danger: { backgroundColor: colors.status.dangerBackground },
+  destructive: { backgroundColor: colors.action.destructivePressed }
 });
