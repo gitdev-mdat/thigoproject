@@ -1,8 +1,10 @@
 import type {
   MerchantOrder,
+  MerchantStore,
   OrderAction,
   OrderBoard,
-  OrderStatus
+  OrderStatus,
+  StoreClosedReason
 } from "../types/orders";
 
 export type SegmentKey = "new" | "doing" | "ready" | "done";
@@ -92,6 +94,22 @@ export function applyOrderUpdate(
     active: board.active.filter((item) => item.id !== order.id),
     recent: [order, ...board.recent.filter((item) => item.id !== order.id)]
   };
+}
+
+const CLOSED_LABELS: Record<StoreClosedReason, string> = {
+  UNPUBLISHED: "Cửa hàng đang ẩn với khách",
+  PAUSED: "Đang tạm ngưng nhận đơn",
+  OUTSIDE_HOURS: "Ngoài giờ mở cửa"
+};
+
+/**
+ * Header chip for a store customers cannot order from, or undefined when it
+ * is open. Without `closedReason` (older API), only unpublished is known.
+ */
+export function closedLabel(store: MerchantStore): string | undefined {
+  if (store.closedReason === undefined)
+    return store.isActive ? undefined : CLOSED_LABELS.UNPUBLISHED;
+  return store.closedReason ? CLOSED_LABELS[store.closedReason] : undefined;
 }
 
 export type StatusTone = "warning" | "info" | "success" | "danger" | "neutral";

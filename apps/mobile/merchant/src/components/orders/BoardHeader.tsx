@@ -8,13 +8,19 @@ import { IconButton } from "../IconButton";
 type Props = {
   title: string;
   subtitle?: string | undefined;
-  paused?: boolean | undefined;
+  /** Why customers cannot order right now; nothing while open. */
+  closedLabel?: string | undefined;
   /** Shows the account action when the header is used outside the tab shell. */
   onAccount?: (() => void) | undefined;
 };
 
 /** Title with store context and an optional account action; pads for the status bar. */
-export function BoardHeader({ title, subtitle, paused, onAccount }: Props) {
+export function BoardHeader({
+  title,
+  subtitle,
+  closedLabel,
+  onAccount
+}: Props) {
   const { top } = useSafeAreaInsets();
   return (
     <View style={[styles.bar, { paddingTop: top + spacing.xs }]}>
@@ -27,9 +33,7 @@ export function BoardHeader({ title, subtitle, paused, onAccount }: Props) {
             {subtitle}
           </Text>
         ) : null}
-        {paused ? (
-          <Chip label="Cửa hàng đang tạm ngưng bán" tone="warning" />
-        ) : null}
+        {closedLabel ? <Chip label={closedLabel} tone="warning" /> : null}
       </View>
       {onAccount ? (
         <IconButton icon="user" label="Tài khoản" onPress={onAccount} />

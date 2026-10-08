@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -50,10 +49,9 @@ export function Sheet({
       navigationBarTranslucent
       onRequestClose={close}
     >
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      {/* Edge-to-edge windows (the app and this Modal) are not resized for the
+          keyboard on Android, so both platforms pad the content instead. */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <View style={[styles.frame, { paddingTop: top + spacing.lg }]}>
           <Pressable
             style={styles.scrim}

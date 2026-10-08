@@ -11,7 +11,9 @@ export const UPLOAD_MESSAGES = {
   tooLarge: "Ảnh lớn hơn 5 MB. Hãy chọn ảnh nhỏ hơn hoặc cắt bớt ảnh.",
   wrongType: "Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP. Hãy chọn ảnh khác.",
   network: "Chưa tải được ảnh lên do mất kết nối. Kiểm tra mạng rồi thử lại.",
-  failed: "Chưa tải được ảnh lên. Vui lòng thử lại."
+  failed: "Chưa tải được ảnh lên. Vui lòng thử lại.",
+  picker:
+    "Chưa mở được thư viện ảnh. Kiểm tra quyền truy cập ảnh của ứng dụng rồi thử lại."
 } as const;
 
 /** The subset of an image picker asset needed to upload it. */
@@ -63,7 +65,13 @@ export function imageFilePart(image: PickedImage): Blob | NativeFilePart {
   const ext =
     Object.keys(EXTENSION_TYPES).find((key) => EXTENSION_TYPES[key] === type) ??
     "jpg";
-  const name = image.fileName?.trim() || `image.${ext}`;
+  // iOS keeps the original name (e.g. IMG_1.HEIC) for an edited JPEG.
+  const fileName = image.fileName?.trim();
+  const fileExt = extensionOf(fileName);
+  const name =
+    fileName && fileExt && EXTENSION_TYPES[fileExt] === type
+      ? fileName
+      : `image.${ext}`;
   return { uri: image.uri, name, type };
 }
 

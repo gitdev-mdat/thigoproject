@@ -48,11 +48,16 @@ export type MerchantOrder = {
   };
 };
 
+/** Why customers cannot order right now; null while the store is open. */
+export type StoreClosedReason = "UNPUBLISHED" | "PAUSED" | "OUTSIDE_HOURS";
+
 export type MerchantStore = {
   id: string;
   name: string;
   addressLine: string;
   isActive: boolean;
+  /** Absent from older API responses. */
+  closedReason?: StoreClosedReason | null;
 };
 
 export type OrderBoard = {

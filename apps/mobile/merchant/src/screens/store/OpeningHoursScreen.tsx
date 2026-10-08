@@ -2,7 +2,6 @@ import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,14 +12,17 @@ import { colors, radius, spacing, typography } from "@thigo/design-tokens";
 
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { DiscardChangesSheet } from "../../components/DiscardChangesSheet";
 import { FieldMessage } from "../../components/FieldMessage";
 import { Notice } from "../../components/Notice";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { TextField } from "../../components/TextField";
 import { Toggle } from "../../components/Toggle";
 import { ToggleRow } from "../../components/ToggleRow";
+import { useLeaveGuard } from "../../hooks/useLeaveGuard";
 import type { Storefront } from "../../hooks/useStorefront";
 import { saveOpeningHours } from "../../services/storefront";
+import { isDirty } from "../../utils/dirty";
 import {
   DAY_LABELS,
   applyToAll,
@@ -42,12 +44,19 @@ export function OpeningHoursScreen({ storefront, nav, notify }: Props) {
   const hours = storefront.store?.openingHours ?? null;
   const [unlimited, setUnlimited] = useState(hours === null);
   const [days, setDays] = useState<DayDraft[]>(() => toDrafts(hours));
+  // Day edits only count while hours are limited, as only then are they saved.
+  const [initial] = useState(() => (hours === null ? null : days));
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
 
   const perDay = submitted && !unlimited ? dayErrors(days) : [];
   const week = submitted && !unlimited ? weekError(days) : undefined;
+  const guard = useLeaveGuard({
+    dirty: isDirty(initial, unlimited ? null : days),
+    busy: saving,
+    nav
+  });
 
   const update = (index: number, patch: Partial<DayDraft>) => {
     setServerError("");
@@ -68,7 +77,7 @@ export function OpeningHoursScreen({ storefront, nav, notify }: Props) {
     setSaving(false);
     if (!result.ok) return setServerError(result.message);
     notify("Đã lưu giờ mở cửa.");
-    nav.back();
+    guard.leave();
   };
 
   return (
@@ -79,10 +88,7 @@ export function OpeningHoursScreen({ storefront, nav, notify }: Props) {
         onBack={nav.back}
         backDisabled={saving}
       />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.content}
@@ -151,6 +157,11 @@ export function OpeningHoursScreen({ storefront, nav, notify }: Props) {
           />
         </View>
       </KeyboardAvoidingView>
+      <DiscardChangesSheet
+        visible={guard.confirming}
+        onStay={guard.stay}
+        onDiscard={guard.leave}
+      />
     </View>
   );
 }

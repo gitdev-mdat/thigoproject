@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { MerchantOrder, OrderStatus } from "../types/orders";
+import type {
+  MerchantOrder,
+  MerchantStore,
+  OrderStatus
+} from "../types/orders";
 import {
   applyOrderUpdate,
+  closedLabel,
   defaultSegment,
   groupOrders,
   nextStep,
@@ -133,5 +138,40 @@ describe("order steps", () => {
     expect(normalizeRejectReason("  Hết món ")).toBe("Hết món");
     expect(normalizeRejectReason("ab")).toBeNull();
     expect(normalizeRejectReason("x".repeat(256))).toBeNull();
+  });
+});
+
+describe("closedLabel", () => {
+  const store: MerchantStore = {
+    id: "s1",
+    name: "Quán Cô Ba",
+    addressLine: "1 Lê Lợi",
+    isActive: true
+  };
+
+  it("names each reason customers cannot order", () => {
+    expect(closedLabel({ ...store, closedReason: "UNPUBLISHED" })).toBe(
+      "Cửa hàng đang ẩn với khách"
+    );
+    expect(closedLabel({ ...store, closedReason: "PAUSED" })).toBe(
+      "Đang tạm ngưng nhận đơn"
+    );
+    expect(closedLabel({ ...store, closedReason: "OUTSIDE_HOURS" })).toBe(
+      "Ngoài giờ mở cửa"
+    );
+  });
+
+  it("shows nothing while the store is open", () => {
+    expect(closedLabel({ ...store, closedReason: null })).toBeUndefined();
+    expect(
+      closedLabel({ ...store, isActive: false, closedReason: null })
+    ).toBeUndefined();
+  });
+
+  it("falls back to visibility when the API omits the reason", () => {
+    expect(closedLabel(store)).toBeUndefined();
+    expect(closedLabel({ ...store, isActive: false })).toBe(
+      "Cửa hàng đang ẩn với khách"
+    );
   });
 });

@@ -39,6 +39,20 @@ describe("picked image helpers", () => {
     ).toMatchObject({ name: "mon.jpg" });
   });
 
+  it("renames a part whose original name does not match its type", () => {
+    expect(
+      imageFilePart({
+        uri: "file:///x/crop.jpg",
+        fileName: "IMG_1.HEIC",
+        mimeType: "image/jpeg"
+      })
+    ).toEqual({
+      uri: "file:///x/crop.jpg",
+      name: "image.jpg",
+      type: "image/jpeg"
+    });
+  });
+
   it("uses the web File when the picker provides one", () => {
     const file = new Blob(["x"], { type: "image/png" });
     expect(imageFilePart({ uri: "blob:1", file })).toBe(file);

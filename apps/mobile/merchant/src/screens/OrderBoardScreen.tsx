@@ -18,6 +18,7 @@ import type { OrderBoardState } from "../hooks/useOrderBoard";
 import type { MerchantOrder } from "../types/orders";
 import {
   SEGMENTS,
+  closedLabel,
   defaultSegment,
   groupOrders,
   nextStep,
@@ -92,7 +93,7 @@ export function OrderBoardScreen({ session, orders }: Props) {
     <BoardHeader
       title="Đơn hàng"
       subtitle={board?.store.name}
-      paused={board ? !board.store.isActive : false}
+      closedLabel={board ? closedLabel(board.store) : undefined}
     />
   );
   const accountSheet = (

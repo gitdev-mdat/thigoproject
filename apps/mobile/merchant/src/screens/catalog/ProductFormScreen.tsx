@@ -3,7 +3,6 @@ import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +14,7 @@ import { colors, spacing, typography } from "@thigo/design-tokens";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { ConfirmSheet } from "../../components/ConfirmSheet";
+import { DiscardChangesSheet } from "../../components/DiscardChangesSheet";
 import { FieldMessage } from "../../components/FieldMessage";
 import { Notice } from "../../components/Notice";
 import { ScreenHeader } from "../../components/ScreenHeader";
@@ -24,6 +24,7 @@ import { TextField } from "../../components/TextField";
 import { ToggleRow } from "../../components/ToggleRow";
 import { ImagePickerCard } from "../../components/media/ImagePickerCard";
 import { useImageUpload } from "../../hooks/useImageUpload";
+import { useLeaveGuard } from "../../hooks/useLeaveGuard";
 import type { Storefront } from "../../hooks/useStorefront";
 import { moveProduct } from "../../services/storefront";
 import type {
@@ -32,6 +33,7 @@ import type {
   ProductInput,
   ProductUpdateInput
 } from "../../types/storefront";
+import { isDirty } from "../../utils/dirty";
 import { formatPriceInput, parsePrice, priceError } from "../../utils/price";
 import { findProduct, productPosition } from "../../utils/storefront";
 import type { Navigation, Notify } from "../routes";
@@ -154,6 +156,13 @@ function ProductForm({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const upload = useImageUpload(PRODUCT_ASPECT);
+  const draft = { name, categoryId, price, description, isAvailable };
+  const [initial] = useState(() => draft);
+  const guard = useLeaveGuard({
+    dirty: isDirty(initial, draft) || imageMediaId !== undefined,
+    busy: saving || deleting,
+    nav
+  });
 
   const position = product
     ? productPosition(storefront.catalog, product.id)
@@ -183,7 +192,7 @@ function ProductForm({
   const pickImage = async () => {
     const picked = await upload.pickAndUpload();
     if (!picked) return;
-    setImageUrl(picked.localUri);
+    setImageUrl(picked.media.url);
     setImageMediaId(picked.media.id);
   };
 
@@ -221,7 +230,7 @@ function ProductForm({
     const input = body();
     if (product && !Object.keys(input).length) {
       notify("Không có thay đổi nào để lưu.", "info");
-      return nav.back();
+      return guard.leave();
     }
     setSaving(true);
     setServerError("");
@@ -233,7 +242,7 @@ function ProductForm({
         ? `Đã lưu thay đổi cho “${result.value.name}”.`
         : `Đã thêm “${result.value.name}” vào thực đơn.`
     );
-    nav.back();
+    guard.leave();
   };
 
   const move = async (direction: MoveDirection) => {
@@ -262,7 +271,7 @@ function ProductForm({
         ? `Đã gỡ “${product.name}” khỏi thực đơn. Món vẫn được giữ trong lịch sử đơn hàng.`
         : `Đã xoá “${product.name}”.`
     );
-    nav.back();
+    guard.leave();
   };
 
   return (
@@ -274,10 +283,7 @@ function ProductForm({
         onBack={nav.back}
         backDisabled={saving || deleting}
       />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.content}
@@ -293,7 +299,7 @@ function ProductForm({
           <ImagePickerCard
             label="Ảnh món (không bắt buộc)"
             noun="ảnh"
-            imageUrl={imageUrl}
+            imageUrl={upload.previewUri ?? imageUrl}
             aspectRatio={PRODUCT_ASPECT[0] / PRODUCT_ASPECT[1]}
             status={upload.status}
             error={upload.error}
@@ -451,6 +457,11 @@ function ProductForm({
         error={deleteError}
         onCancel={() => setConfirmDelete(false)}
         onConfirm={() => void remove()}
+      />
+      <DiscardChangesSheet
+        visible={guard.confirming}
+        onStay={guard.stay}
+        onDiscard={guard.leave}
       />
     </View>
   );

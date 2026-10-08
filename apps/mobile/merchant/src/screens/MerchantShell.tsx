@@ -78,7 +78,7 @@ export function MerchantShell({ session, storefront, justCreated }: Props) {
     return () => subscription.remove();
   }, [onTabs, tab, goTab]);
 
-  const { push, pop, reset } = stack;
+  const { push, back, reset, setBackGuard } = stack;
   const nav = useMemo<Navigation>(
     () => ({
       goTab: (key) => {
@@ -94,9 +94,10 @@ export function MerchantShell({ session, storefront, justCreated }: Props) {
         goTab("menu");
         setAddCategoryRequest((count) => count + 1);
       },
-      back: pop
+      back,
+      setBackGuard
     }),
-    [push, pop, reset, goTab]
+    [push, back, reset, setBackGuard, goTab]
   );
 
   const newOrders =

@@ -9,13 +9,14 @@ export type UploadStatus = "idle" | "picking" | "uploading" | "error";
 
 export type PickedUpload = {
   media: MediaUpload;
-  /** Local file URI for an instant preview while the remote image loads. */
+  /** Local file URI, e.g. to keep previewing while the media is attached. */
   localUri: string;
 };
 
 /**
  * Picks one image from the library and uploads it. The caller attaches the
  * returned media id with its own PATCH, so an upload never changes data alone.
+ * `previewUri` is the local file only while it uploads.
  */
 export function useImageUpload(aspect: [number, number] = [4, 3]) {
   const [status, setStatus] = useState<UploadStatus>("idle");
@@ -29,12 +30,20 @@ export function useImageUpload(aspect: [number, number] = [4, 3]) {
     setError("");
     setStatus("picking");
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect,
-        quality: 0.8
-      });
+      let result: ImagePicker.ImagePickerResult;
+      try {
+        // Editing re-encodes the crop, so iOS HEIC photos arrive as JPEG.
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          allowsEditing: true,
+          aspect,
+          quality: 0.8
+        });
+      } catch {
+        setError(UPLOAD_MESSAGES.picker);
+        setStatus("error");
+        return null;
+      }
       const asset = result.canceled ? undefined : result.assets[0];
       if (!asset) {
         setStatus("idle");
@@ -49,6 +58,8 @@ export function useImageUpload(aspect: [number, number] = [4, 3]) {
       setPreviewUri(asset.uri);
       setStatus("uploading");
       const media = await uploadImage(asset);
+      // The local preview covers only the upload; callers show media.url next.
+      setPreviewUri(undefined);
       setStatus("idle");
       return { media, localUri: asset.uri };
     } catch (e) {

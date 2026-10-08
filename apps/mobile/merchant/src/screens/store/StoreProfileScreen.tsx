@@ -2,7 +2,6 @@ import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   View
@@ -11,11 +10,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, spacing } from "@thigo/design-tokens";
 
 import { Button } from "../../components/Button";
+import { DiscardChangesSheet } from "../../components/DiscardChangesSheet";
 import { Notice } from "../../components/Notice";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { StoreProfileFields } from "../../components/store/StoreProfileFields";
+import { useLeaveGuard } from "../../hooks/useLeaveGuard";
 import type { Storefront } from "../../hooks/useStorefront";
 import { updateStore } from "../../services/storefront";
+import { isDirty } from "../../utils/dirty";
 import {
   hasErrors,
   profileChanges,
@@ -31,13 +33,17 @@ type Props = { storefront: Storefront; nav: Navigation; notify: Notify };
 export function StoreProfileScreen({ storefront, nav, notify }: Props) {
   const { bottom } = useSafeAreaInsets();
   const store = storefront.store;
-  const [draft, setDraft] = useState<StoreProfileDraft>(() =>
-    profileDraft(store)
-  );
+  const [initial] = useState<StoreProfileDraft>(() => profileDraft(store));
+  const [draft, setDraft] = useState<StoreProfileDraft>(initial);
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
   const errors = submitted ? validateProfile(draft) : {};
+  const guard = useLeaveGuard({
+    dirty: isDirty(initial, draft),
+    busy: saving,
+    nav
+  });
 
   const save = async () => {
     if (!store) return;
@@ -46,7 +52,7 @@ export function StoreProfileScreen({ storefront, nav, notify }: Props) {
     const changes = profileChanges(draft, store);
     if (!Object.keys(changes).length) {
       notify("Không có thay đổi nào để lưu.", "info");
-      return nav.back();
+      return guard.leave();
     }
     setSaving(true);
     setServerError("");
@@ -54,7 +60,7 @@ export function StoreProfileScreen({ storefront, nav, notify }: Props) {
     setSaving(false);
     if (!result.ok) return setServerError(result.message);
     notify("Đã lưu thông tin cửa hàng.");
-    nav.back();
+    guard.leave();
   };
 
   return (
@@ -65,10 +71,7 @@ export function StoreProfileScreen({ storefront, nav, notify }: Props) {
         onBack={nav.back}
         backDisabled={saving}
       />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.content}
@@ -95,6 +98,11 @@ export function StoreProfileScreen({ storefront, nav, notify }: Props) {
           />
         </View>
       </KeyboardAvoidingView>
+      <DiscardChangesSheet
+        visible={guard.confirming}
+        onStay={guard.stay}
+        onDiscard={guard.leave}
+      />
     </View>
   );
 }
