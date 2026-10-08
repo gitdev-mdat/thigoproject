@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, radius, spacing, typography } from "@thigo/design-tokens";
 
 import { IconButton } from "./IconButton";
+import { useKeyboardVisible } from "../hooks/useKeyboardVisible";
 
 type Props = {
   visible: boolean;
@@ -37,6 +38,7 @@ export function Sheet({
   footer
 }: Props) {
   const { top, bottom } = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisible();
   const close = () => {
     if (!locked) onClose();
   };
@@ -60,7 +62,10 @@ export function Sheet({
             accessibilityLabel="Đóng"
           />
           <View
-            style={[styles.sheet, { paddingBottom: bottom + spacing.md }]}
+            style={[
+              styles.sheet,
+              { paddingBottom: (keyboardVisible ? 0 : bottom) + spacing.md }
+            ]}
             accessibilityViewIsModal
           >
             <View style={styles.header}>

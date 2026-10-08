@@ -37,6 +37,7 @@ import { isDirty } from "../../utils/dirty";
 import { formatPriceInput, parsePrice, priceError } from "../../utils/price";
 import { findProduct, productPosition } from "../../utils/storefront";
 import type { Navigation, Notify } from "../routes";
+import { useKeyboardVisible } from "../../hooks/useKeyboardVisible";
 
 const PRODUCT_ASPECT: [number, number] = [4, 3];
 const DESCRIPTION_MAX = 500;
@@ -135,6 +136,7 @@ function ProductForm({
   title: string;
 }) {
   const { bottom } = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisible();
   const categories = storefront.catalog?.categories ?? [];
   const [name, setName] = useState(product?.name ?? "");
   const [categoryId, setCategoryId] = useState(
@@ -433,7 +435,12 @@ function ProductForm({
           ) : null}
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: bottom + spacing.sm }]}>
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: (keyboardVisible ? 0 : bottom) + spacing.sm }
+          ]}
+        >
           {serverError ? <Notice message={serverError} tone="danger" /> : null}
           <Button
             label={product ? "Lưu thay đổi" : "Thêm món"}

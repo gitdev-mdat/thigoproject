@@ -145,6 +145,7 @@ export function HomeScreen({
             onRefresh={() => void refresh()}
             colors={[colors.brand.primary]}
             tintColor={colors.brand.primary}
+            progressViewOffset={top}
           />
         }
       >

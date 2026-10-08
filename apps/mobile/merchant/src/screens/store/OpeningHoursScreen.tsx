@@ -35,12 +35,14 @@ import {
   type DayDraft
 } from "../../utils/hours";
 import type { Navigation, Notify } from "../routes";
+import { useKeyboardVisible } from "../../hooks/useKeyboardVisible";
 
 type Props = { storefront: Storefront; nav: Navigation; notify: Notify };
 
 /** Seven Monday-first days, or no hour limit at all. */
 export function OpeningHoursScreen({ storefront, nav, notify }: Props) {
   const { bottom } = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisible();
   const hours = storefront.store?.openingHours ?? null;
   const [unlimited, setUnlimited] = useState(hours === null);
   const [days, setDays] = useState<DayDraft[]>(() => toDrafts(hours));
@@ -141,7 +143,12 @@ export function OpeningHoursScreen({ storefront, nav, notify }: Props) {
             </>
           )}
         </ScrollView>
-        <View style={[styles.footer, { paddingBottom: bottom + spacing.sm }]}>
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: (keyboardVisible ? 0 : bottom) + spacing.sm }
+          ]}
+        >
           {serverError ? <Notice message={serverError} tone="danger" /> : null}
           {submitted && perDay.some(Boolean) ? (
             <Text style={styles.error} accessibilityRole="alert">

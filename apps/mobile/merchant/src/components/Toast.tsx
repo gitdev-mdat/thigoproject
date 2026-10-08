@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: radius.medium,
-    elevation: elevation.overlay.level,
+    // boxShadow renders on Android, iOS and web; adding elevation would draw a second shadow on Android.
     boxShadow: elevation.overlay.webShadow
   }
 });

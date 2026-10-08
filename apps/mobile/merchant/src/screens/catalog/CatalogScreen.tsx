@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: radius.full,
     backgroundColor: colors.brand.primary,
-    elevation: elevation.raised.level,
+    // boxShadow renders on Android, iOS and web; adding elevation would draw a second shadow on Android.
     boxShadow: elevation.raised.webShadow
   },
   fabPressed: { backgroundColor: colors.brand.primaryPressed },

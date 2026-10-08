@@ -193,7 +193,7 @@ export function MerchantShell({ session, storefront, justCreated }: Props) {
         offset={
           onTabs
             ? tabBarHeight + spacing.sm
-            : bottom + sizes.control.prominent + spacing.lg
+            : bottom + sizes.control.prominent + spacing.xl
         }
       />
     </View>

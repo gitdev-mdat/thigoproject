@@ -26,12 +26,14 @@ import {
   type StoreProfileDraft
 } from "../../utils/storefront";
 import type { Navigation, Notify } from "../routes";
+import { useKeyboardVisible } from "../../hooks/useKeyboardVisible";
 
 type Props = { storefront: Storefront; nav: Navigation; notify: Notify };
 
 /** Edit the store's name, type, address, phone and description. */
 export function StoreProfileScreen({ storefront, nav, notify }: Props) {
   const { bottom } = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisible();
   const store = storefront.store;
   const [initial] = useState<StoreProfileDraft>(() => profileDraft(store));
   const [draft, setDraft] = useState<StoreProfileDraft>(initial);
@@ -87,7 +89,12 @@ export function StoreProfileScreen({ storefront, nav, notify }: Props) {
             }}
           />
         </ScrollView>
-        <View style={[styles.footer, { paddingBottom: bottom + spacing.sm }]}>
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: (keyboardVisible ? 0 : bottom) + spacing.sm }
+          ]}
+        >
           {serverError ? <Notice message={serverError} tone="danger" /> : null}
           <Button
             label="Lưu thay đổi"
