@@ -1,3 +1,4 @@
+import { assertDevelopmentFixturesEnabled } from "../config/development-fixtures.js";
 import { canonicalizeVietnamesePhone } from "../common/auth/phone-number.js";
 import { ApplicationRole } from "../entities/auth/user-role.entity.js";
 
@@ -15,11 +16,7 @@ export interface DevelopmentAuthFixtureWriter {
 export function assertDevelopmentSeedEnvironment(
   environment: NodeJS.ProcessEnv
 ): void {
-  if (environment.NODE_ENV === "production") {
-    throw new Error(
-      "dev:seed is development-only and cannot run when NODE_ENV=production."
-    );
-  }
+  assertDevelopmentFixturesEnabled(environment, "dev:seed");
 }
 
 export async function seedDevelopmentAuthFixtures(

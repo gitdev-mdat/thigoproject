@@ -51,27 +51,45 @@ pnpm db:migration:generate -- src/migrations/DescribeChange
 
 `pnpm db:down` stops the optional local service. Docker is not required when `DATABASE_URL` points to an external PostgreSQL instance. TypeORM never synchronizes schema automatically.
 
-### Local authentication fixtures
+### Local development fixtures
 
-After the configured development database is running and migrations have been
-applied, enable `OTP_PROVIDER=test` in `apps/api/.env` and run:
+Development fixtures are off by default. They cover the seeded accounts, the
+demo catalog, order history and images, and the fixed OTP `000000`. To use
+them on your own machine, add these lines to `apps/api/.env` (the commented
+lines in `.env.example` show the same settings):
+
+```sh
+NODE_ENV=development
+THIGO_ENABLE_DEV_FIXTURES=true
+OTP_PROVIDER=test
+```
+
+Fixtures run only when the flag is exactly `true` and `NODE_ENV` is
+`development` or `test`. Any other value, or a missing setting, keeps them
+off. With `NODE_ENV=production`, the API and `dev:seed` refuse to start if the
+flag or `OTP_PROVIDER=test` is set. Never put these lines in a deployed
+environment.
+
+After the configured database is running and migrations have been applied,
+run:
 
 ```sh
 pnpm dev:seed
 pnpm dev:api
 ```
 
-Then start the desired app and sign in with the matching development account:
+The seed is idempotent and is never run by API startup or migrations. Sign in
+with the matching development account:
 
-| App      | Phone      |
-| -------- | ---------- |
-| Customer | 0860000001 |
-| Merchant | 0860000002 |
-| Driver   | 0860000003 |
-| Admin    | 0860000004 |
+| App      | Phone      | Notes                       |
+| -------- | ---------- | --------------------------- |
+| Customer | 0860000001 | addresses and order history |
+| Merchant | 0860000002 | owns Cơm Tấm Sài Gòn        |
+| Driver   | 0860000003 | second driver: 0860000201   |
+| Admin    | 0860000004 |                             |
 
-The development OTP is `000000`. The seed is explicit, idempotent, and refuses
-to run when `NODE_ENV=production`; it is never run by API startup or migrations.
+Android testing on a local emulator is described in
+[docs/ANDROID_TESTING.md](./docs/ANDROID_TESTING.md).
 
 ## Verify
 

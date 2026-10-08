@@ -8,18 +8,27 @@ import {
 } from "./auth-fixtures.js";
 
 describe("development auth fixtures", () => {
-  it("refuses to seed in production", () => {
-    expect(() =>
-      assertDevelopmentSeedEnvironment({ NODE_ENV: "production" })
-    ).toThrow(
-      "dev:seed is development-only and cannot run when NODE_ENV=production."
+  it("refuses to seed without the opt-in flag or in production", () => {
+    expect(() => assertDevelopmentSeedEnvironment({})).toThrow(
+      "dev:seed needs THIGO_ENABLE_DEV_FIXTURES=true"
     );
-  });
-
-  it("allows an explicit or implicit development environment", () => {
-    expect(() => assertDevelopmentSeedEnvironment({})).not.toThrow();
     expect(() =>
       assertDevelopmentSeedEnvironment({ NODE_ENV: "development" })
+    ).toThrow("dev:seed needs THIGO_ENABLE_DEV_FIXTURES=true");
+    expect(() =>
+      assertDevelopmentSeedEnvironment({
+        NODE_ENV: "production",
+        THIGO_ENABLE_DEV_FIXTURES: "true"
+      })
+    ).toThrow("forbidden in production");
+  });
+
+  it("seeds only when development fixtures are opted in", () => {
+    expect(() =>
+      assertDevelopmentSeedEnvironment({
+        NODE_ENV: "development",
+        THIGO_ENABLE_DEV_FIXTURES: "true"
+      })
     ).not.toThrow();
   });
 
