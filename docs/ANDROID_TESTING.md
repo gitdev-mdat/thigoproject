@@ -45,6 +45,8 @@ pnpm dev:seed      # idempotent; safe to run again
 pnpm dev:api       # NestJS on http://0.0.0.0:3001
 ```
 
+Run `pnpm db:migrate` again after every pull or branch switch: it applies only the migrations this database has not run yet and never drops data. `pnpm db:migration:show` lists them (`[X]` applied, `[ ]` pending). For example, a database last migrated before the catalog and ordering work has only the F01 tables, and Customer Home fails until the later migrations are applied.
+
 ## 4. Check emulator-to-API connectivity
 
 The apps call `http://10.0.2.2:3001` on Android by default (`src/services/auth.ts` in Customer, `src/services/config.ts` in Merchant and Driver; `EXPO_PUBLIC_API_URL` overrides it). `10.0.2.2` is the emulator's alias for the Windows host.
@@ -184,6 +186,17 @@ Fill in the Result column (PASS / FAIL / NOT RUN) and attach the folder to PR #1
 - **"Network request failed" or "Máy chủ hiện chưa phản hồi":** make sure `pnpm dev:api` is running and the check in step 4 passes. Do not set `EXPO_PUBLIC_API_URL` to `localhost` for the emulator.
 - **The API refuses to start with `OTP_PROVIDER=test needs THIGO_ENABLE_DEV_FIXTURES=true…`:** add the three lines from step 3.
 - **`dev:seed needs THIGO_ENABLE_DEV_FIXTURES=true…`:** same fix. Fixtures are off by default on purpose.
+- **Customer Home shows "Chưa kết nối được THIGO" while the API is running, and the API log shows `relation "customer_addresses" does not exist` or `relation "products" does not exist` (code `42P01`):** the database is behind the code. The API log also says `Database schema is behind this API: … not applied`. Stop the API, then:
+
+  ```powershell
+  pnpm db:migration:show   # [ ] marks pending migrations
+  pnpm db:migrate          # applies only those; existing users, stores and orders are kept
+  pnpm dev:seed            # idempotent
+  pnpm dev:api
+  ```
+
+  Check you are migrating the database the API uses: both read `DATABASE_URL` from `apps/api/.env` (default `postgresql://thigo:thigo@localhost:5432/thigo`, the Docker Compose database). A `DATABASE_URL` set in your PowerShell session or Windows environment overrides that file for both commands; check with `$env:DATABASE_URL`.
+
 - **Expo Go reports an SDK mismatch:** uninstall Expo Go from the emulator and run `expo start --android` again so it installs the SDK 57 build.
 - **The port is already in use:** pick another `--port` for that app.
 - **The photo picker shows no photos:** push an image with `adb push` as in section 7 and open the Photos or Files app once.
