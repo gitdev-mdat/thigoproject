@@ -10,6 +10,7 @@ import {
   seedDevelopmentOrders
 } from "../development/order-fixtures.js";
 import { DevelopmentOrderFixtureRepository } from "../repositories/ordering/development-order-fixture.repository.js";
+import { assertNoPendingMigrations } from "../repositories/health/pending-migrations.js";
 
 async function run(): Promise<void> {
   assertDevelopmentSeedEnvironment(process.env);
@@ -20,6 +21,7 @@ async function run(): Promise<void> {
   await dataSource.initialize();
 
   try {
+    await assertNoPendingMigrations(dataSource);
     await dataSource.transaction((manager) =>
       seedDevelopmentOrders(new DevelopmentOrderFixtureRepository(manager))
     );

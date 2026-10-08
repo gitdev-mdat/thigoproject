@@ -10,6 +10,7 @@ import {
   seedDevelopmentCatalog
 } from "../development/catalog-fixtures.js";
 import { DevelopmentCatalogFixtureRepository } from "../repositories/catalog/development-catalog-fixture.repository.js";
+import { assertNoPendingMigrations } from "../repositories/health/pending-migrations.js";
 
 async function run(): Promise<void> {
   assertDevelopmentSeedEnvironment(process.env);
@@ -20,6 +21,7 @@ async function run(): Promise<void> {
   await dataSource.initialize();
 
   try {
+    await assertNoPendingMigrations(dataSource);
     await dataSource.transaction((manager) =>
       seedDevelopmentCatalog(new DevelopmentCatalogFixtureRepository(manager))
     );

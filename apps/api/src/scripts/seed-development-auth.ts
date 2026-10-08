@@ -10,6 +10,7 @@ import {
   seedDevelopmentAuthFixtures
 } from "../development/auth-fixtures.js";
 import { DevelopmentAuthFixtureRepository } from "../repositories/auth/development-auth-fixture.repository.js";
+import { assertNoPendingMigrations } from "../repositories/health/pending-migrations.js";
 
 async function run(): Promise<void> {
   assertDevelopmentSeedEnvironment(process.env);
@@ -20,6 +21,7 @@ async function run(): Promise<void> {
   await dataSource.initialize();
 
   try {
+    await assertNoPendingMigrations(dataSource);
     await seedDevelopmentAuthFixtures(
       new DevelopmentAuthFixtureRepository(dataSource)
     );

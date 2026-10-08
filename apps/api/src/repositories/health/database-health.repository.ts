@@ -7,6 +7,11 @@ import {
 import { InjectDataSource } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
 
+import {
+  findPendingMigrations,
+  pendingMigrationsMessage
+} from "./pending-migrations.js";
+
 export type DatabaseStatus = "up" | "down";
 
 @Injectable()
@@ -56,12 +61,30 @@ export class DatabaseHealthRepository
 
     this.initialization ??= this.dataSource
       .initialize()
-      .then(() => true)
+      .then(async () => {
+        await this.reportPendingMigrations();
+        return true;
+      })
       .catch(() => false)
       .finally(() => {
         this.initialization = undefined;
       });
 
     return this.initialization;
+  }
+
+  /**
+   * A database behind the code answers 42P01 ("relation does not exist") on
+   * every feature route, so name the missing migrations once at connection.
+   */
+  private async reportPendingMigrations(): Promise<void> {
+    try {
+      const pending = await findPendingMigrations(this.dataSource);
+      if (pending.length) this.logger.error(pendingMigrationsMessage(pending));
+    } catch (error) {
+      this.logger.warn(
+        `Could not read the database migration history: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 }
