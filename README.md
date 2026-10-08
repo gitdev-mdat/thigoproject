@@ -89,6 +89,20 @@ with the matching development account:
 | Merchant | 0860000005 | no store yet: first-run setup |
 | Admin    | 0860000004 |                               |
 
+### Merchant accounts and storefront onboarding
+
+These are two separate steps. **Account provisioning** decides who may sign in
+to the Merchant app; it follows the F01 identity model (merchant roles are
+granted, never self-registered), and locally the seeded accounts above cover
+it. **Storefront onboarding** is what a signed-in merchant does next: create
+the store, add categories and products, and publish. A store can be published
+once it has a valid phone, a valid address and at least one available product
+in a visible category; no Admin approval is involved.
+
+Uploaded images are written to `MEDIA_STORAGE_DIR` (default
+`apps/api/storage/media` in development). Production must point it at a
+persistent volume; see [docs/MEDIA_STORAGE.md](./docs/MEDIA_STORAGE.md).
+
 Android testing on a local emulator is described in
 [docs/ANDROID_TESTING.md](./docs/ANDROID_TESTING.md).
 
