@@ -7,10 +7,14 @@ import { HealthController } from "../controllers/health/health.controller.js";
 import { DatabaseHealthRepository } from "../repositories/health/database-health.repository.js";
 import { HealthService } from "../services/health/health.service.js";
 import { AuthModule } from "./auth.module.js";
+import { CatalogModule } from "./catalog.module.js";
+import { OrderingModule } from "./ordering.module.js";
 
 @Module({
   imports: [
     AuthModule,
+    CatalogModule,
+    OrderingModule,
     TypeOrmModule.forRoot({
       ...createDatabaseOptions(readDatabaseEnvironment(process.env)),
       manualInitialization: true
