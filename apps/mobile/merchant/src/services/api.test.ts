@@ -66,3 +66,40 @@ describe("createApiRequest", () => {
     await expect(request("/x")).rejects.toMatchObject({ status: "network" });
   });
 });
+
+describe("attempt", () => {
+  it("wraps success and API failures without throwing", async () => {
+    const { attempt } = await import("./api");
+    await expect(attempt(async () => 3)).resolves.toEqual({
+      ok: true,
+      value: 3
+    });
+    await expect(
+      attempt(async () => {
+        throw new ApiError(409, "Danh mục vẫn còn món.");
+      })
+    ).resolves.toEqual({
+      ok: false,
+      status: 409,
+      message: "Danh mục vẫn còn món."
+    });
+    await expect(
+      attempt(async () => {
+        throw new Error("boom");
+      })
+    ).resolves.toMatchObject({ ok: false, status: "network" });
+  });
+});
+
+describe("resolveMediaUrl", () => {
+  it("resolves API-relative media against the API origin", async () => {
+    const { resolveMediaUrl } = await import("./api");
+    expect(resolveMediaUrl("/media/dev/a.png")).toBe(
+      "http://api.test/media/dev/a.png"
+    );
+    expect(resolveMediaUrl("https://cdn.test/a.png")).toBe(
+      "https://cdn.test/a.png"
+    );
+    expect(resolveMediaUrl(null)).toBeUndefined();
+  });
+});

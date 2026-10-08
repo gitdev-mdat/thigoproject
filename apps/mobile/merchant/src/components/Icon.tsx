@@ -13,7 +13,14 @@ export type IconName =
   | "receipt"
   | "user"
   | "bag"
-  | "check";
+  | "check"
+  | "list"
+  | "store"
+  | "image"
+  | "more"
+  | "up"
+  | "down"
+  | "clock";
 
 type Props = { name: IconName; size?: number; color?: string };
 
@@ -299,6 +306,205 @@ export function Icon({
                   bottom: size * 0.04,
                   left: size * 0.1,
                   borderRadius: stroke * 1.5
+                }
+              ]}
+            />
+          </>
+        );
+      case "list":
+        return [0.2, 0.5, 0.8].map((top) => (
+          <View key={top}>
+            <View
+              style={[
+                styles.abs,
+                line,
+                {
+                  width: stroke * 1.5,
+                  height: stroke * 1.5,
+                  top: size * top - stroke * 0.75,
+                  left: size * 0.04
+                }
+              ]}
+            />
+            <View
+              style={[
+                styles.abs,
+                line,
+                {
+                  width: size * 0.66,
+                  height: stroke,
+                  top: size * top - stroke / 2,
+                  left: size * 0.3
+                }
+              ]}
+            />
+          </View>
+        ));
+      case "store":
+        return (
+          <>
+            <View
+              style={[
+                styles.abs,
+                outline,
+                {
+                  width: size * 0.92,
+                  height: size * 0.28,
+                  top: size * 0.08,
+                  left: size * 0.04,
+                  borderRadius: stroke
+                }
+              ]}
+            />
+            <View
+              style={[
+                styles.abs,
+                outline,
+                {
+                  width: size * 0.76,
+                  height: size * 0.56,
+                  bottom: size * 0.04,
+                  left: size * 0.12,
+                  borderTopWidth: 0,
+                  borderBottomLeftRadius: stroke,
+                  borderBottomRightRadius: stroke
+                }
+              ]}
+            />
+            <View
+              style={[
+                styles.abs,
+                outline,
+                {
+                  width: size * 0.26,
+                  height: size * 0.32,
+                  bottom: size * 0.04,
+                  left: size * 0.37,
+                  borderBottomWidth: 0
+                }
+              ]}
+            />
+          </>
+        );
+      case "image":
+        return (
+          <>
+            <View
+              style={[
+                styles.abs,
+                outline,
+                {
+                  width: size * 0.92,
+                  height: size * 0.76,
+                  top: size * 0.12,
+                  left: size * 0.04,
+                  borderRadius: stroke * 1.5
+                }
+              ]}
+            />
+            <View
+              style={[
+                styles.abs,
+                {
+                  width: size * 0.2,
+                  height: size * 0.2,
+                  top: size * 0.26,
+                  right: size * 0.22,
+                  borderRadius: size,
+                  backgroundColor: color
+                }
+              ]}
+            />
+            <View
+              style={[
+                styles.abs,
+                line,
+                {
+                  width: size * 0.56,
+                  height: stroke,
+                  bottom: size * 0.3,
+                  left: size * 0.12,
+                  transform: [{ rotate: "-30deg" }]
+                }
+              ]}
+            />
+          </>
+        );
+      case "more":
+        return [0.18, 0.5, 0.82].map((left) => (
+          <View
+            key={left}
+            style={[
+              styles.abs,
+              {
+                width: stroke * 2,
+                height: stroke * 2,
+                top: size / 2 - stroke,
+                left: size * left - stroke,
+                borderRadius: size,
+                backgroundColor: color
+              }
+            ]}
+          />
+        ));
+      case "up":
+      case "down":
+        return (
+          <View
+            style={[
+              styles.abs,
+              {
+                width: size * 0.5,
+                height: size * 0.5,
+                left: size * 0.25,
+                top: name === "up" ? size * 0.34 : size * 0.16,
+                borderColor: color,
+                borderLeftWidth: name === "up" ? stroke : 0,
+                borderTopWidth: name === "up" ? stroke : 0,
+                borderRightWidth: name === "down" ? stroke : 0,
+                borderBottomWidth: name === "down" ? stroke : 0,
+                transform: [{ rotate: "45deg" }]
+              }
+            ]}
+          />
+        );
+      case "clock":
+        return (
+          <>
+            <View
+              style={[
+                styles.abs,
+                outline,
+                {
+                  width: size * 0.9,
+                  height: size * 0.9,
+                  top: size * 0.05,
+                  left: size * 0.05,
+                  borderRadius: size
+                }
+              ]}
+            />
+            <View
+              style={[
+                styles.abs,
+                line,
+                {
+                  width: stroke,
+                  height: size * 0.3,
+                  top: size * 0.22,
+                  left: size / 2 - stroke / 2
+                }
+              ]}
+            />
+            <View
+              style={[
+                styles.abs,
+                line,
+                {
+                  width: size * 0.24,
+                  height: stroke,
+                  top: size / 2 - stroke / 2,
+                  left: size / 2 - stroke / 2
                 }
               ]}
             />

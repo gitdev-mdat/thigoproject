@@ -9,10 +9,11 @@ type Props = {
   title: string;
   subtitle?: string | undefined;
   paused?: boolean | undefined;
-  onAccount: () => void;
+  /** Shows the account action when the header is used outside the tab shell. */
+  onAccount?: (() => void) | undefined;
 };
 
-/** Store identity with the account action; pads for the status bar. */
+/** Title with store context and an optional account action; pads for the status bar. */
 export function BoardHeader({ title, subtitle, paused, onAccount }: Props) {
   const { top } = useSafeAreaInsets();
   return (
@@ -30,7 +31,9 @@ export function BoardHeader({ title, subtitle, paused, onAccount }: Props) {
           <Chip label="Cửa hàng đang tạm ngưng bán" tone="warning" />
         ) : null}
       </View>
-      <IconButton icon="user" label="Tài khoản" onPress={onAccount} />
+      {onAccount ? (
+        <IconButton icon="user" label="Tài khoản" onPress={onAccount} />
+      ) : null}
     </View>
   );
 }
@@ -41,7 +44,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: spacing.xs,
     paddingLeft: spacing.md,
-    paddingRight: spacing.xs,
+    paddingRight: spacing.md,
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.subtle,

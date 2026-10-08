@@ -1,7 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, spacing, typography } from "@thigo/design-tokens";
 
 import { AccountSheet } from "../components/AccountSheet";
@@ -15,7 +14,7 @@ import { RejectSheet } from "../components/orders/RejectSheet";
 import { SegmentTabs } from "../components/orders/SegmentTabs";
 import type { AuthSession } from "../hooks/useAuthSession";
 import { useNow } from "../hooks/useNow";
-import { useOrderBoard } from "../hooks/useOrderBoard";
+import type { OrderBoardState } from "../hooks/useOrderBoard";
 import type { MerchantOrder } from "../types/orders";
 import {
   SEGMENTS,
@@ -27,14 +26,16 @@ import {
 import { formatClock } from "../utils/format";
 import { maskPhone } from "../utils/phone";
 
-type Props = { session: AuthSession };
+type Props = {
+  session: AuthSession;
+  /** Owned by the app shell so polling continues on other tabs. */
+  orders: OrderBoardState;
+};
 
-/** Merchant home: the store's order queues and the next action on each order. */
-export function OrderBoardScreen({ session }: Props) {
-  const orders = useOrderBoard();
+/** The Đơn hàng tab: the store's order queues and the next action on each order. */
+export function OrderBoardScreen({ session, orders }: Props) {
   const { board, phase, pending, act, reportError } = orders;
   const now = useNow(15_000);
-  const { bottom } = useSafeAreaInsets();
   const [segment, setSegment] = useState<SegmentKey>();
   const [rejecting, setRejecting] = useState<MerchantOrder | null>(null);
   const [rejectError, setRejectError] = useState("");
@@ -89,10 +90,9 @@ export function OrderBoardScreen({ session }: Props) {
   const phone = session.user ? maskPhone(session.user.phone) : undefined;
   const header = (
     <BoardHeader
-      title={board?.store.name ?? "Đơn hàng"}
-      subtitle={board?.store.addressLine}
+      title="Đơn hàng"
+      subtitle={board?.store.name}
       paused={board ? !board.store.isActive : false}
-      onAccount={() => setAccountOpen(true)}
     />
   );
   const accountSheet = (
@@ -151,7 +151,8 @@ export function OrderBoardScreen({ session }: Props) {
       </View>
     );
 
-  const listPadding = { paddingBottom: bottom + spacing.xl };
+  // The tab bar below already pads for the home indicator.
+  const listPadding = { paddingBottom: spacing.xl };
 
   return (
     <View style={styles.screen}>
