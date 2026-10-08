@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import sys
 
-from thigo_ai.config import RouterGatewayError, RouterSettings, resolve_router_target
+from thigo_ai.config import RouterGatewayError, RouterSettings, resolve_router_routes
 from thigo_ai.repository import repository_root, require_active_task
 from thigo_ai.task_flow import run_task_execution
 
@@ -23,7 +23,7 @@ def run() -> None:
         require_active_task(repository_root())
         if not dry_run:
             settings = RouterSettings.from_environment()
-            resolve_router_target(settings)
+            resolve_router_routes(settings)
     except (FileNotFoundError, RouterGatewayError, ValueError) as error:
         print(f"FAIL - {error}", file=sys.stderr)
         raise SystemExit(1) from None

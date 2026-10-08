@@ -9,6 +9,8 @@ from typing import Any
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
+from thigo_ai.command_resolution import CommandResolutionError, resolve_command_argv
+
 PROTECTED_DIRECTORIES = {
     ".git",
     ".next",
@@ -110,16 +112,21 @@ class SearchWorkspaceTool(BaseTool):
             query,
             str(target),
         ]
-        result = subprocess.run(
-            command,
-            cwd=self.root,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=30,
-            check=False,
-        )
+        try:
+            result = subprocess.run(
+                resolve_command_argv(command),
+                cwd=self.root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=30,
+                check=False,
+            )
+        except CommandResolutionError as error:
+            return f"ERROR: {error}"
+        except FileNotFoundError:
+            return "ERROR: Command executable not found: rg"
         output = (result.stdout + result.stderr).strip()
         if result.returncode == 1:
             return "No matches found."
@@ -255,8 +262,9 @@ class RunWorkspaceCommandTool(BaseTool):
         environment = os.environ.copy()
         environment["CI"] = "1"
         try:
+            resolved_arguments = resolve_command_argv(arguments)
             result = subprocess.run(
-                arguments,
+                resolved_arguments,
                 cwd=self.root,
                 capture_output=True,
                 text=True,
@@ -266,6 +274,10 @@ class RunWorkspaceCommandTool(BaseTool):
                 check=False,
                 env=environment,
             )
+        except CommandResolutionError as error:
+            return f"ERROR: {error}"
+        except FileNotFoundError:
+            return f"ERROR: Command executable not found: {arguments[0]}"
         except subprocess.TimeoutExpired:
             return f"ERROR: command timed out after {timeout_seconds} seconds"
         output = (result.stdout + result.stderr).strip()
@@ -279,10 +291,16 @@ def read_only_tools(root: Path) -> list[BaseTool]:
     ]
 
 
-def implementation_tools(root: Path) -> list[BaseTool]:
+def verification_tools(root: Path) -> list[BaseTool]:
     return [
         *read_only_tools(root),
         RunWorkspaceCommandTool(root=root),
+    ]
+
+
+def implementation_tools(root: Path) -> list[BaseTool]:
+    return [
+        *verification_tools(root),
         WriteWorkspaceFileTool(root=root),
         EditWorkspaceFileTool(root=root),
     ]

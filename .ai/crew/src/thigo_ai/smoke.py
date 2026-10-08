@@ -3,9 +3,9 @@ import sys
 from thigo_ai.config import (
     RouterGatewayError,
     RouterSettings,
-    resolve_router_target,
+    resolve_router_routes,
 )
-from thigo_ai.flow import run_architecture_smoke
+from thigo_ai.flow import SmokeError, run_architecture_smoke
 
 
 def main() -> None:
@@ -16,10 +16,20 @@ def main() -> None:
 
     try:
         settings = RouterSettings.from_environment()
-        resolve_router_target(settings)
-    except (RouterGatewayError, ValueError) as error:
+        resolve_router_routes(settings)
+    except (RouterGatewayError, SmokeError, ValueError) as error:
         print(f"FAIL - {error}", file=sys.stderr)
         raise SystemExit(1) from None
 
-    report = run_architecture_smoke()
-    print(f"Architecture smoke report: {report}")
+    try:
+        result = run_architecture_smoke()
+    except SmokeError as error:
+        print(f"FAIL - {error}", file=sys.stderr)
+        raise SystemExit(1) from None
+
+    print("THIGO AI smoke")
+    print("Claude Lead [thigo-implement] ........ PASS")
+    print("GPT Assistant [thigo-reviewer] ...... PASS")
+    print("Flow plumbing ....................... PASS")
+    print(f"Live LLM calls ...................... {result.live_llm_calls}")
+    print("Smoke PASS")

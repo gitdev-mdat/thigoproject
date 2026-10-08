@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "nest start --watch",
+    "dev:seed": "nest build && node dist/scripts/seed-development-auth.js",
     "start": "node dist/main.js",
     "build": "nest build",
     "lint": "eslint . --max-warnings=0",
@@ -31,6 +32,7 @@
     "@nestjs/cli": "12.0.8",
     "@nestjs/testing": "12.1.2",
     "@thigo/typescript-config": "workspace:*",
+    "@types/express": "^5.0.6",
     "@types/node": "24.10.1",
     "@types/pg": "8.15.6",
     "ts-node": "10.9.2",

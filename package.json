@@ -21,6 +21,7 @@
     "dev:driver": "pnpm --filter @thigo/driver dev",
     "dev:admin": "pnpm --filter @thigo/admin-web dev",
     "dev:api": "pnpm --filter @thigo/api dev",
+    "dev:seed": "pnpm --filter @thigo/api dev:seed",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres",

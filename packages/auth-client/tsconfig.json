@@ -1,0 +1,8 @@
+{
+  "extends": "@thigo/typescript-config/node.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vitest/globals"]
+  },
+  "include": ["src/**/*.ts"]
+}

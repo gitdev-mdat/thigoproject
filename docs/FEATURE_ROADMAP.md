@@ -21,14 +21,14 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
 | ID  | Feature                        | Customer | Merchant | Driver | Admin | API | Status  |
 | --- | ------------------------------ | -------- | -------- | ------ | ----- | --- | ------- |
 | F00 | Architecture & Data Foundation | —        | —        | —      | —     | ✓   | DONE    |
-| F01 | Identity & Access              | ✓        | ✓        | ✓      | ✓     | ✓   | READY   |
-| F02 | Merchant Onboarding            | —        | ✓        | —      | ✓     | ✓   | PLANNED |
-| F03 | Catalog & Availability         | ✓        | ✓        | —      | —     | ✓   | PLANNED |
-| F04 | Driver Availability            | —        | ✓        | ✓      | ✓     | ✓   | PLANNED |
-| F05 | Order Lifecycle                | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED |
-| F06 | Payments & Settlement          | ✓        | ✓        | —      | ✓     | ✓   | PLANNED |
-| F07 | Realtime Operations            | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED |
-| F08 | Platform Capabilities          | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED |
+| F01 | Identity & Access              | ✓        | ✓        | ✓      | ✓     | ✓   | DONE    |
+| F02 | Merchant & Catalog             | ✓        | ✓        | ✓      | ✓     | ✓   | READY   |
+| F03 | Location & Service Area        | ✓        | ✓        | —      | —     | ✓   | PLANNED |
+| F04 | Discovery, Cart & Checkout     | ✓        | —        | —      | —     | ✓   | PLANNED |
+| F05 | Order Operations               | ✓        | ✓        | —      | ✓     | ✓   | PLANNED |
+| F06 | Driver & Delivery              | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED |
+| F07 | Realtime & Notifications       | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED |
+| F08 | MVP Operations & Hardening     | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED |
 
 ## F00 — Architecture & Data Foundation
 
@@ -46,112 +46,112 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
 
 ## F01 — Identity & Access
 
-- **Status:** `READY`
+- **Status:** `DONE`
 - **Depends on:** F00
 - **Goal:** Give each THIGO surface a trustworthy identity and access boundary appropriate to its role.
 - **Surfaces:** Customer, Merchant, Driver, Admin, API.
 - **Progress:**
-  - [ ] Create and approve the feature `TASK.md`
-  - [ ] Define user-visible access states and acceptance criteria
-  - [ ] Implement the approved cross-surface scope
-  - [ ] Verify authorization boundaries, failure states, and accessibility
-  - [ ] Record completion evidence and promote F02
-- **Notes:** The identity provider, session mechanism, roles, permissions, recovery flows, and domain schema are deliberately unspecified here. Those choices require the active task and any architecture approval called for by `ARCHITECTURE.md`.
+  - [x] Create and approve the feature `TASK.md`
+  - [x] Define user-visible access states and acceptance criteria
+  - [x] Implement the approved cross-surface scope
+  - [x] Verify authorization boundaries, failure states, and accessibility
+  - [x] Record completion evidence and promote F02
+- **Notes:** Completed on 2026-10-06. Runtime verification covered Customer, Merchant, and Driver on an Android emulator plus Admin at 1366×768 and a narrow browser viewport against the real NestJS/PostgreSQL stack. Authorized and denied roles, session restore, logout, revoked-session rejection, invalid OTP, UTF-8 Vietnamese, overflow, and keyboard focus were exercised.
 
-## F02 — Merchant Onboarding
+## F02 — Merchant & Catalog
 
-- **Status:** `PLANNED`
+- **Status:** `READY`
 - **Depends on:** F01
-- **Goal:** Let a merchant submit and understand the status of the minimum information required to operate on THIGO.
-- **Surfaces:** Merchant, Admin, API.
+- **Goal:** Let a merchant set up a storefront and manage categories, products, prices, and availability; let customers browse the real storefront and catalog; provide bounded Admin visibility; and replace the Customer, Merchant, and Driver prototype entry/authenticated shells with polished role-appropriate experiences.
+- **Surfaces:** Customer, Merchant, Driver, Admin, API.
 - **Progress:**
-  - [ ] Confirm dependency completion
-  - [ ] Create and approve the feature `TASK.md`
-  - [ ] Implement only the approved onboarding journey
-  - [ ] Verify mobile, admin, API, and failure-state behavior
+  - [x] Confirm dependency completion
+  - [x] Create and approve the feature `TASK.md`
+  - [ ] Implement only the approved merchant, catalog, browsing, bounded visibility, and shell-polish scope
+  - [ ] Verify participating mobile, admin, API, persistence, authorization, and failure-state behavior
   - [ ] Record completion evidence and promote F03
-- **Notes:** Do not preselect review policy, required documents, legal workflow, or merchant data model in this roadmap.
+- **Notes:** This approved feature combines merchant storefront setup and catalog/availability in F02; catalog is not a separate F03. F02 remains `READY` until the implementation Flow begins, at which point that Flow may move it to `IN_PROGRESS`. Geographic location, service-area logic, cart, checkout, orders, and delivery remain outside F02.
 
-## F03 — Catalog & Availability
+## F03 — Location & Service Area
 
 - **Status:** `PLANNED`
 - **Depends on:** F02
-- **Goal:** Let merchants maintain an understandable offer and let customers see what is currently orderable.
+- **Goal:** Establish the approved customer location and merchant service-area behavior needed to determine where THIGO can serve.
 - **Surfaces:** Customer, Merchant, API; Admin only if the active task proves an operational need.
 - **Progress:**
   - [ ] Confirm dependency completion
   - [ ] Create and approve the feature `TASK.md`
-  - [ ] Implement the approved catalog and availability scope
+  - [ ] Implement the approved location and service-area scope
   - [ ] Verify consistency across participating surfaces
   - [ ] Record completion evidence and promote F04
-- **Notes:** Taxonomy, modifiers, inventory policy, search, pricing rules, and moderation remain future task decisions.
+- **Notes:** Geocoding, maps, PostGIS use, coverage rules, address policy, ranking, routing, and live tracking remain active-task decisions; this roadmap does not preselect them.
 
-## F04 — Driver Availability
+## F04 — Discovery, Cart & Checkout
 
 - **Status:** `PLANNED`
 - **Depends on:** F03
-- **Goal:** Represent when a driver can participate in fulfillment and make that operational state clear to the required surfaces.
-- **Surfaces:** Driver, Merchant, Admin, API.
+- **Goal:** Let a customer discover an eligible offer, build a cart, and complete the approved checkout journey.
+- **Surfaces:** Customer and API; Merchant or Admin only if the active task proves a required supporting surface.
 - **Progress:**
   - [ ] Confirm dependency completion
   - [ ] Create and approve the feature `TASK.md`
-  - [ ] Implement the approved availability flow
-  - [ ] Verify transitions, stale-state handling, and operational readability
+  - [ ] Implement the approved discovery, cart, and checkout scope
+  - [ ] Verify eligibility, totals, failure recovery, and accessibility
   - [ ] Record completion evidence and promote F05
-- **Notes:** Matching, dispatch, location tracking, schedules, and eligibility rules are not defined here.
+- **Notes:** Ranking, search, promotions, fees, payment methods, and provider choices are not selected by this roadmap.
 
-## F05 — Order Lifecycle
+## F05 — Order Operations
 
 - **Status:** `PLANNED`
 - **Depends on:** F04
-- **Goal:** Support one coherent, auditable order journey across the people who place, prepare, deliver, and oversee it.
-- **Surfaces:** Customer, Merchant, Driver, Admin, API.
+- **Goal:** Give customers, merchants, and bounded Admin operations a coherent, auditable order flow before delivery execution begins.
+- **Surfaces:** Customer, Merchant, Admin, API.
 - **Progress:**
   - [ ] Confirm dependency completion
   - [ ] Create and approve the feature `TASK.md`
-  - [ ] Implement the approved lifecycle and exception scope
+  - [ ] Implement the approved order operations and exception scope
   - [ ] Verify state transitions and each role's next action
   - [ ] Record completion evidence and promote F06
-- **Notes:** Order states, cancellation rules, assignment logic, and service guarantees belong in the active task and domain design.
+- **Notes:** Order states, acceptance, preparation, cancellation, support actions, and service guarantees belong in the active task. Driver assignment and delivery execution remain F06.
 
-## F06 — Payments & Settlement
+## F06 — Driver & Delivery
 
 - **Status:** `PLANNED`
 - **Depends on:** F05
-- **Goal:** Make payment outcomes and merchant settlement information accurate, understandable, and supportable.
-- **Surfaces:** Customer, Merchant, Admin, API; Driver only if the active task includes a verified need.
-- **Progress:**
-  - [ ] Confirm dependency completion
-  - [ ] Create and approve the feature `TASK.md`
-  - [ ] Implement the approved payment and settlement scope
-  - [ ] Verify money display, failure recovery, auditability, and accessibility
-  - [ ] Record completion evidence and promote F07
-- **Notes:** Provider, payment methods, fees, refunds, reconciliation, payout timing, and financial schema are intentionally undecided.
-
-## F07 — Realtime Operations
-
-- **Status:** `PLANNED`
-- **Depends on:** F06
-- **Goal:** Deliver timely operational updates where freshness materially changes a user's next action.
+- **Goal:** Support the approved driver availability, assignment, pickup, delivery, and cross-surface fulfillment journey.
 - **Surfaces:** Customer, Merchant, Driver, Admin, API.
 - **Progress:**
   - [ ] Confirm dependency completion
   - [ ] Create and approve the feature `TASK.md`
-  - [ ] Implement only the approved realtime use cases
-  - [ ] Verify latency expectations, reconnection, stale data, and fallback behavior
-  - [ ] Record completion evidence and promote F08
-- **Notes:** Realtime transport, queues, notifications, event contracts, and caching are not selected by this roadmap.
+  - [ ] Implement the approved driver and delivery scope
+  - [ ] Verify assignment and delivery transitions, authorization, recovery, and operational readability
+  - [ ] Record completion evidence and promote F07
+- **Notes:** Matching, dispatch, driver eligibility, schedules, route behavior, proof of delivery, and exception policy remain active-task decisions.
 
-## F08 — Platform Capabilities
+## F07 — Realtime & Notifications
 
 - **Status:** `PLANNED`
-- **Depends on:** F07
-- **Goal:** Add proven cross-cutting capabilities that improve reliability, operability, safety, or product learning after the core journey exists.
-- **Surfaces:** Only the applications and API surfaces justified by each approved capability.
+- **Depends on:** F06
+- **Goal:** Deliver timely operational updates and notifications where freshness materially changes a user's next action.
+- **Surfaces:** Customer, Merchant, Driver, Admin, API.
 - **Progress:**
   - [ ] Confirm dependency completion
   - [ ] Create and approve the feature `TASK.md`
-  - [ ] Name a concrete capability and its measured need
-  - [ ] Implement and verify the smallest approved cross-cutting scope
+  - [ ] Implement only the approved realtime and notification use cases
+  - [ ] Verify latency expectations, reconnection, stale data, and fallback behavior
+  - [ ] Record completion evidence and promote F08
+- **Notes:** Realtime transport, queues, notification channels, event contracts, delivery guarantees, and caching are not selected by this roadmap.
+
+## F08 — MVP Operations & Hardening
+
+- **Status:** `PLANNED`
+- **Depends on:** F07
+- **Goal:** Verify and harden the complete MVP journey for reliable operation, support, safety, and launch readiness.
+- **Surfaces:** Customer, Merchant, Driver, Admin, API, and repository operations as justified by the approved task.
+- **Progress:**
+  - [ ] Confirm dependency completion
+  - [ ] Create and approve the feature `TASK.md`
+  - [ ] Define the approved operational and hardening acceptance scope
+  - [ ] Implement and verify the smallest changes required for MVP readiness
   - [ ] Record completion evidence
-- **Notes:** F08 is not a backlog dumping ground. Observability, experimentation, support tools, localization, media, caching, and other platform ideas enter only with evidence, ownership, and explicit scope.
+- **Notes:** F08 is not a backlog dumping ground. Observability, support tools, resilience, accessibility, security, performance, localization, and other hardening work enter only with evidence, ownership, and explicit MVP scope.

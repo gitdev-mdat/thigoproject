@@ -5,6 +5,7 @@ import os
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from enum import StrEnum
 from urllib.parse import urlsplit, urlunsplit
 
 from crewai import LLM
@@ -17,8 +18,24 @@ class RouterGatewayError(RuntimeError):
     """A safe-to-report 9Router discovery or connectivity failure."""
 
 
+class MissingRouterRouteError(RouterGatewayError):
+    """A required THIGO 9Router combo is not advertised."""
+
+
 class MissingRouterKeyError(ValueError):
     """The one required local AI credential has not been configured."""
+
+
+class RouterRole(StrEnum):
+    LEAD = "claude_lead"
+    ASSISTANT = "gpt_assistant"
+
+
+ROLE_ROUTES: dict[RouterRole, str] = {
+    RouterRole.LEAD: "thigo-implement",
+    RouterRole.ASSISTANT: "thigo-reviewer",
+}
+REQUIRED_ROUTER_ROLES = tuple(ROLE_ROUTES)
 
 
 def normalize_base_url(value: str) -> str:
@@ -50,40 +67,42 @@ class RouterSettings:
         return cls(base_url=normalize_base_url(base_url), api_key=api_key)
 
 
-def select_router_target(payload: object) -> str:
+def advertised_router_targets(payload: object) -> set[str]:
     if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
         raise RouterGatewayError("9Router returned an invalid /models response")
 
-    candidates = [
-        item
+    targets = {
+        item["id"].strip()
         for item in payload["data"]
         if isinstance(item, dict)
         and isinstance(item.get("id"), str)
         and item["id"].strip()
-    ]
-    if not candidates:
+    }
+    if not targets:
         raise RouterGatewayError("9Router advertised no available LLM routing targets")
-
-    # 9Router publishes its user-defined combos before individual models. Prefer a
-    # combo so upstream provider/model policy stays in the router. A router without
-    # a combo still remains usable through its first advertised LLM target.
-    selected = next(
-        (item for item in candidates if item.get("owned_by") == "combo"),
-        candidates[0],
-    )
-    return selected["id"].strip()
+    return targets
 
 
-def resolve_router_target(
+def select_role_route(payload: object, role: RouterRole) -> str:
+    route = ROLE_ROUTES[role]
+    if route not in advertised_router_targets(payload):
+        raise MissingRouterRouteError(
+            f"Required 9Router combo '{route}' for {role.value} is missing. "
+            "No alternate or generic route was substituted."
+        )
+    return route
+
+
+def fetch_router_catalog(
     settings: RouterSettings, timeout_seconds: float = 5
-) -> str:
+) -> object:
     request = urllib.request.Request(
         f"{settings.base_url}/models",
         headers={"Authorization": f"Bearer {settings.api_key}"},
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-            return select_router_target(json.load(response))
+            return json.load(response)
     except urllib.error.HTTPError as error:
         raise RouterGatewayError(
             f"9Router model discovery was rejected (HTTP {error.code})"
@@ -95,9 +114,26 @@ def resolve_router_target(
         raise RouterGatewayError("9Router returned invalid JSON from /models") from error
 
 
-def build_llm(settings: RouterSettings | None = None) -> LLM:
+def resolve_router_target(
+    settings: RouterSettings,
+    role: RouterRole,
+    timeout_seconds: float = 5,
+) -> str:
+    return select_role_route(fetch_router_catalog(settings, timeout_seconds), role)
+
+
+def resolve_router_routes(
+    settings: RouterSettings,
+    roles: tuple[RouterRole, ...] = REQUIRED_ROUTER_ROLES,
+    timeout_seconds: float = 5,
+) -> dict[RouterRole, str]:
+    payload = fetch_router_catalog(settings, timeout_seconds)
+    return {role: select_role_route(payload, role) for role in roles}
+
+
+def build_llm(role: RouterRole, settings: RouterSettings | None = None) -> LLM:
     router = settings or RouterSettings.from_environment()
-    router_target = resolve_router_target(router)
+    router_target = resolve_router_target(router, role)
     return LLM(
         model=router_target,
         custom_openai=True,
@@ -106,3 +142,15 @@ def build_llm(settings: RouterSettings | None = None) -> LLM:
         temperature=0,
     )
 
+
+def build_smoke_llm(role: RouterRole, settings: RouterSettings | None = None) -> LLM:
+    router = settings or RouterSettings.from_environment()
+    router_target = resolve_router_target(router, role)
+    return LLM(
+        model=router_target,
+        custom_openai=True,
+        base_url=router.base_url,
+        api_key=router.api_key,
+        temperature=0,
+        max_tokens=32,
+    )

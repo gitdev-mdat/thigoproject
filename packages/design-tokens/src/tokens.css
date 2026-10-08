@@ -1,0 +1,21 @@
+:root {
+  --thigo-brand-primary: #146c43;
+  --thigo-brand-primary-pressed: #0e5535;
+  --thigo-surface-primary: #ffffff;
+  --thigo-surface-secondary: #f5f7f6;
+  --thigo-text-primary: #17211b;
+  --thigo-text-secondary: #526158;
+  --thigo-text-inverse: #ffffff;
+  --thigo-text-link: #0e5a38;
+  --thigo-text-disabled: #66736b;
+  --thigo-border-default: #7d8c83;
+  --thigo-border-subtle: #d8e0db;
+  --thigo-border-focus: #146c43;
+  --thigo-status-danger: #a1261d;
+  --thigo-action-disabled: #d9e0dc;
+  --thigo-space-xs: 0.5rem;
+  --thigo-space-sm: 0.75rem;
+  --thigo-space-md: 1rem;
+  --thigo-space-lg: 1.5rem;
+  --thigo-radius-medium: 0.75rem;
+}

@@ -10,7 +10,7 @@ from thigo_ai.config import (
     MissingRouterKeyError,
     RouterGatewayError,
     RouterSettings,
-    resolve_router_target,
+    resolve_router_routes,
 )
 
 DiagnosticStatus = Literal["PASS", "WARNING", "FAIL"]
@@ -24,9 +24,11 @@ class Diagnostic:
 
 def check_router(settings: RouterSettings) -> Diagnostic:
     try:
-        resolve_router_target(settings)
+        routes = resolve_router_routes(settings)
+        route_names = ", ".join(routes.values())
         return Diagnostic(
-            "PASS", "9Router endpoint reachable and an LLM routing target is available"
+            "PASS",
+            "9Router endpoint reachable; required role routes available: " + route_names,
         )
     except RouterGatewayError as error:
         return Diagnostic("FAIL", str(error))

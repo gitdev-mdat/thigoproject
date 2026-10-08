@@ -4,10 +4,16 @@ import pytest
 
 from thigo_ai.config import (
     DEFAULT_NINEROUTER_BASE_URL,
+    ROLE_ROUTES,
+    MissingRouterRouteError,
     RouterGatewayError,
+    RouterRole,
     RouterSettings,
+    advertised_router_targets,
+    build_smoke_llm,
     normalize_base_url,
-    select_router_target,
+    resolve_router_routes,
+    select_role_route,
 )
 
 
@@ -52,24 +58,86 @@ def test_base_url_rejects_embedded_credentials() -> None:
         normalize_base_url("https://user:secret@router.example.test/v1")
 
 
-def test_router_target_prefers_combo() -> None:
+def test_only_existing_lead_and_assistant_routes_are_required() -> None:
+    assert ROLE_ROUTES == {
+        RouterRole.LEAD: "thigo-implement",
+        RouterRole.ASSISTANT: "thigo-reviewer",
+    }
+
+
+@pytest.mark.parametrize(
+    ("role", "available", "missing"),
+    [
+        (RouterRole.LEAD, "thigo-reviewer", "thigo-implement"),
+        (RouterRole.ASSISTANT, "thigo-implement", "thigo-reviewer"),
+    ],
+)
+def test_missing_either_required_combo_fails_clearly(
+    role: RouterRole,
+    available: str,
+    missing: str,
+) -> None:
+    payload = {"data": [{"id": available, "owned_by": "combo"}]}
+
+    with pytest.raises(MissingRouterRouteError) as error:
+        select_role_route(payload, role)
+
+    assert missing in str(error.value)
+    assert "No alternate or generic route was substituted" in str(error.value)
+
+
+def test_both_existing_routes_resolve_from_one_catalog() -> None:
     payload = {
         "data": [
+            {"id": "thigo-implement", "owned_by": "combo"},
+            {"id": "thigo-reviewer", "owned_by": "combo"},
             {"id": "provider/model", "owned_by": "provider"},
-            {"id": "team-routing-combo", "owned_by": "combo"},
+        ]
+    }
+    settings = RouterSettings("https://router.example.test/v1", "test-only")
+
+    with patch("thigo_ai.config.fetch_router_catalog", return_value=payload) as fetch:
+        routes = resolve_router_routes(settings)
+
+    assert routes == ROLE_ROUTES
+    fetch.assert_called_once_with(settings, 5)
+
+
+def test_unrelated_routes_are_not_substituted() -> None:
+    payload = {
+        "data": [
+            {"id": "unrelated-combo", "owned_by": "combo"},
+            {"id": "provider/model", "owned_by": "provider"},
         ]
     }
 
-    assert select_router_target(payload) == "team-routing-combo"
+    with pytest.raises(MissingRouterRouteError):
+        select_role_route(payload, RouterRole.LEAD)
 
 
-def test_router_target_falls_back_to_first_advertised_llm() -> None:
-    payload = {"data": [{"id": "provider/model", "owned_by": "provider"}]}
-
-    assert select_router_target(payload) == "provider/model"
-
-
-def test_router_target_rejects_empty_catalog() -> None:
+def test_router_catalog_rejects_empty_targets() -> None:
     with pytest.raises(RouterGatewayError, match="no available LLM"):
-        select_router_target({"data": []})
+        advertised_router_targets({"data": []})
 
+
+def test_smoke_llm_uses_route_and_tiny_output_cap() -> None:
+    settings = RouterSettings("https://router.example.test/v1", "test-only")
+
+    with (
+        patch(
+            "thigo_ai.config.resolve_router_target",
+            return_value="thigo-implement",
+        ) as resolve,
+        patch("thigo_ai.config.LLM") as llm,
+    ):
+        build_smoke_llm(RouterRole.LEAD, settings)
+
+    resolve.assert_called_once_with(settings, RouterRole.LEAD)
+    llm.assert_called_once_with(
+        model="thigo-implement",
+        custom_openai=True,
+        base_url=settings.base_url,
+        api_key=settings.api_key,
+        temperature=0,
+        max_tokens=32,
+    )

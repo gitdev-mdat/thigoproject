@@ -39,7 +39,7 @@ flowchart LR
 - Next.js 16 for admin; it is a UI, not a second backend.
 - NestJS 12 as one API application. No Nest-managed repository monorepo and no microservices.
 - PostgreSQL through TypeORM and the official NestJS integration. PostGIS may be added through a migration when a geospatial requirement arrives.
-- CrewAI 1.x Flow with three focused agents through 9Router's OpenAI-compatible endpoint.
+- CrewAI 1.x Flow with a Claude Lead and GPT Assistant through 9Router's OpenAI-compatible endpoint.
 
 ## Backend dependency direction
 
@@ -57,7 +57,7 @@ The only permitted business-data path is `Mobile/Admin -> NestJS API -> Reposito
 
 ## AI architecture
 
-CrewAI is development-only. A deterministic Flow sequences Inspect -> Plan -> Implement -> Review -> Verify -> Report using Planner, Implementer, and Reviewer roles. The smoke workflow is read-only for product code and writes only `.ai/reports`. One configuration module maps `NINEROUTER_API_KEY` and the optional `NINEROUTER_BASE_URL` override into CrewAI's custom OpenAI-compatible client, then discovers a router-owned target because CrewAI requires a model field. Upstream provider/model selection remains in 9Router. Product startup never depends on 9Router.
+CrewAI is development-only. The full task Flow sequences Inspect -> Plan -> Implement -> Review -> Verify -> Report using a Claude Lead and GPT Assistant. The separate smoke Flow makes one fixed acknowledgement call through each required 9Router combo, verifies both responses deterministically, and does not load repository context, expose tools, or write a report. One configuration module maps `NINEROUTER_API_KEY` and the optional `NINEROUTER_BASE_URL` override into CrewAI's custom OpenAI-compatible client. Repository code names only the `thigo-implement` and `thigo-reviewer` combos; upstream provider/model selection and fallback remain in 9Router. Product startup never depends on 9Router.
 
 ## Immutable and evolvable decisions
 

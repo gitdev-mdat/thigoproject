@@ -51,6 +51,28 @@ pnpm db:migration:generate -- src/migrations/DescribeChange
 
 `pnpm db:down` stops the optional local service. Docker is not required when `DATABASE_URL` points to an external PostgreSQL instance. TypeORM never synchronizes schema automatically.
 
+### Local authentication fixtures
+
+After the configured development database is running and migrations have been
+applied, enable `OTP_PROVIDER=test` in `apps/api/.env` and run:
+
+```sh
+pnpm dev:seed
+pnpm dev:api
+```
+
+Then start the desired app and sign in with the matching development account:
+
+| App      | Phone      |
+| -------- | ---------- |
+| Customer | 0860000001 |
+| Merchant | 0860000002 |
+| Driver   | 0860000003 |
+| Admin    | 0860000004 |
+
+The development OTP is `000000`. The seed is explicit, idempotent, and refuses
+to run when `NODE_ENV=production`; it is never run by API startup or migrations.
+
 ## Verify
 
 ```sh
@@ -70,6 +92,6 @@ pnpm ai:doctor
 pnpm ai:smoke
 ```
 
-The smoke workflow reads repository architecture, asks a minimal CrewAI Flow to assess compliance, and writes only to `.ai/reports`. The centralized adapter discovers a 9Router routing target, so no model environment variable is required. Product development remains usable while 9Router is offline.
+`pnpm ai:doctor` performs deterministic environment and route diagnosis without model completions. `pnpm ai:smoke` makes exactly one tiny live acknowledgement call through `thigo-implement` and one through `thigo-reviewer`, verifies both responses, and exits without loading task/repository context, exposing product tools, or writing a report. `crewai run` is the full task execution workflow. Provider model IDs and fallback policy remain inside 9Router, and product development remains usable while 9Router is offline.
 
 Start with [AGENTS.md](./AGENTS.md). The architecture source of truth is [ARCHITECTURE.md](./ARCHITECTURE.md); scoped rules sit beside API, mobile, admin, and AI code.
