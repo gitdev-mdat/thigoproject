@@ -18,17 +18,17 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
 
 `✓` is a primary surface; `—` means no planned feature surface. Supporting involvement can be decided in the active `TASK.md` when it is genuinely required.
 
-| ID  | Feature                        | Customer | Merchant | Driver | Admin | API | Status  |
-| --- | ------------------------------ | -------- | -------- | ------ | ----- | --- | ------- |
-| F00 | Architecture & Data Foundation | —        | —        | —      | —     | ✓   | DONE    |
-| F01 | Identity & Access              | ✓        | ✓        | ✓      | ✓     | ✓   | DONE    |
-| F02 | Merchant & Catalog             | ✓        | ✓        | ✓      | ✓     | ✓   | READY   |
-| F03 | Location & Service Area        | ✓        | ✓        | —      | —     | ✓   | PLANNED |
-| F04 | Discovery, Cart & Checkout     | ✓        | —        | —      | —     | ✓   | PLANNED |
-| F05 | Order Operations               | ✓        | ✓        | —      | ✓     | ✓   | PLANNED |
-| F06 | Driver & Delivery              | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED |
-| F07 | Realtime & Notifications       | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED |
-| F08 | MVP Operations & Hardening     | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED |
+| ID  | Feature                        | Customer | Merchant | Driver | Admin | API | Status      |
+| --- | ------------------------------ | -------- | -------- | ------ | ----- | --- | ----------- |
+| F00 | Architecture & Data Foundation | —        | —        | —      | —     | ✓   | DONE        |
+| F01 | Identity & Access              | ✓        | ✓        | ✓      | ✓     | ✓   | DONE        |
+| F02 | Merchant & Catalog             | ✓        | ✓        | ✓      | ✓     | ✓   | IN_PROGRESS |
+| F03 | Location & Service Area        | ✓        | ✓        | —      | —     | ✓   | PLANNED     |
+| F04 | Discovery, Cart & Checkout     | ✓        | —        | —      | —     | ✓   | PLANNED     |
+| F05 | Order Operations               | ✓        | ✓        | —      | ✓     | ✓   | PLANNED     |
+| F06 | Driver & Delivery              | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED     |
+| F07 | Realtime & Notifications       | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED     |
+| F08 | MVP Operations & Hardening     | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED     |
 
 ## F00 — Architecture & Data Foundation
 
@@ -60,7 +60,7 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
 
 ## F02 — Merchant & Catalog
 
-- **Status:** `READY`
+- **Status:** `IN_PROGRESS`
 - **Depends on:** F01
 - **Goal:** Let a merchant set up a storefront and manage categories, products, prices, and availability; let customers browse the real storefront and catalog; provide bounded Admin visibility; and replace the Customer, Merchant, and Driver prototype entry/authenticated shells with polished role-appropriate experiences.
 - **Surfaces:** Customer, Merchant, Driver, Admin, API.
@@ -70,7 +70,7 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
   - [ ] Implement only the approved merchant, catalog, browsing, bounded visibility, and shell-polish scope
   - [ ] Verify participating mobile, admin, API, persistence, authorization, and failure-state behavior
   - [ ] Record completion evidence and promote F03
-- **Notes:** This approved feature combines merchant storefront setup and catalog/availability in F02; catalog is not a separate F03. F02 remains `READY` until the implementation Flow begins, at which point that Flow may move it to `IN_PROGRESS`. Geographic location, service-area logic, cart, checkout, orders, and delivery remain outside F02.
+- **Notes:** This approved feature combines merchant storefront setup and catalog/availability in F02; catalog is not a separate F03. F02 remains `READY` until the implementation Flow begins, at which point that Flow may move it to `IN_PROGRESS`. Geographic location, service-area logic, cart, checkout, orders, and delivery remain outside F02. The P0 entry-experience slice (Customer, Merchant, and Driver login, OTP, and authenticated shells) is implemented; it was checked in a browser render against the real NestJS/PostgreSQL auth stack, and Android Emulator verification is still outstanding. Storefront, catalog, and Admin visibility are not started.
 
 ## F03 — Location & Service Area
 
