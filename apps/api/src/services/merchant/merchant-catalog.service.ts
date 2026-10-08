@@ -96,7 +96,7 @@ export class MerchantCatalogService {
     await this.category(store.id, id);
     if (!(await this.storefront.deleteEmptyCategory(store.id, id)))
       throw new ConflictException(
-        "Danh mục còn món (kể cả món đã xoá có trong đơn cũ). Hãy chuyển món đi hoặc ẩn danh mục."
+        "Danh mục còn món hoặc có món đã từng được đặt nên không thể xoá. Hãy chuyển món đang bán sang danh mục khác, hoặc ẩn danh mục."
       );
     return this.catalog(userId);
   }

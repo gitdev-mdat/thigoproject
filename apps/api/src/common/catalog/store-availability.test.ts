@@ -38,6 +38,36 @@ describe("store availability", () => {
     expect(withinOpeningHours(null, mondayMorning)).toBe(true);
   });
 
+  it("runs overnight windows past midnight and accepts 24:00", () => {
+    const late = [
+      { open: "18:00", close: "02:00" },
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ];
+    // Monday 23:00 and Tuesday 01:30 in Vietnam are open; Tuesday 02:00 is not.
+    expect(withinOpeningHours(late, new Date("2026-10-05T16:00:00Z"))).toBe(
+      true
+    );
+    expect(withinOpeningHours(late, new Date("2026-10-05T18:30:00Z"))).toBe(
+      true
+    );
+    expect(withinOpeningHours(late, new Date("2026-10-05T19:00:00Z"))).toBe(
+      false
+    );
+    // Monday 01:00 is outside: Sunday is closed, Monday opens at 18:00.
+    expect(withinOpeningHours(late, new Date("2026-10-04T18:00:00Z"))).toBe(
+      false
+    );
+    const allDay = Array(7).fill({ open: "00:00", close: "24:00" });
+    expect(withinOpeningHours(allDay, new Date("2026-10-05T16:59:00Z"))).toBe(
+      true
+    );
+  });
+
   it("explains why a store cannot take orders", () => {
     const store = {
       isActive: true,

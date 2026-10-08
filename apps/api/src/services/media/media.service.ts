@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { ReadStream } from "node:fs";
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
   PayloadTooLargeException,
@@ -17,6 +18,8 @@ import { StorefrontRepository } from "../../repositories/merchant/storefront.rep
 import { MAX_IMAGE_BYTES, detectImageType } from "./image-validation.js";
 
 export const MEDIA_URL_PREFIX = "/media/";
+/** Uploads are never garbage-collected yet, so cap what one store can keep. */
+export const MAX_IMAGES_PER_STORE = 300;
 
 export function mediaUrl(id: string): string {
   return `${MEDIA_URL_PREFIX}${id}`;
@@ -51,6 +54,10 @@ export class MediaService {
     if (!contentType)
       throw new UnsupportedMediaTypeException(
         "Chỉ nhận ảnh JPG, PNG hoặc WebP."
+      );
+    if ((await this.media.countForStore(store.id)) >= MAX_IMAGES_PER_STORE)
+      throw new ConflictException(
+        "Cửa hàng đã tải lên quá nhiều ảnh. Vui lòng liên hệ THIGO."
       );
     const asset = await this.media.create({
       storeId: store.id,

@@ -141,7 +141,10 @@ export function parsePublished(body: unknown): boolean {
   return bool(record(body).published, "Trạng thái hiển thị");
 }
 
-/** Seven Monday-first days; each null (closed) or a same-day open/close window. */
+/**
+ * Seven Monday-first days; each null (closed) or an open/close window. A close
+ * earlier than the open time runs past midnight into the next day.
+ */
 export function parseOpeningHours(body: unknown): OpeningHours | null {
   const value = record(body).hours;
   if (value === null) return null;
@@ -152,8 +155,9 @@ export function parseOpeningHours(body: unknown): OpeningHours | null {
     const window = record(day);
     if (!isValidTime(window.open) || !isValidTime(window.close))
       invalid("Giờ mở cửa không hợp lệ (HH:MM).");
-    if (minutesOf(window.close) <= minutesOf(window.open))
-      invalid("Giờ đóng cửa phải sau giờ mở cửa trong cùng ngày.");
+    if (window.open === "24:00") invalid("Giờ mở cửa không hợp lệ (HH:MM).");
+    if (minutesOf(window.close) === minutesOf(window.open))
+      invalid("Giờ đóng cửa phải khác giờ mở cửa.");
     return { open: window.open, close: window.close };
   });
   if (hours.every((day) => day === null))

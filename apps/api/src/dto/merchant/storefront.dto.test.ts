@@ -67,9 +67,24 @@ describe("storefront input", () => {
     expect(() => parseOpeningHours({ hours: [day] })).toThrow("7 ngày");
     expect(() =>
       parseOpeningHours({
-        hours: Array(7).fill({ open: "22:00", close: "06:00" })
+        hours: Array(7).fill({ open: "09:00", close: "09:00" })
       })
-    ).toThrow("sau giờ mở cửa");
+    ).toThrow("khác giờ mở cửa");
+    expect(
+      parseOpeningHours({
+        hours: Array(7).fill({ open: "18:00", close: "02:00" })
+      })
+    ).toHaveLength(7);
+    expect(
+      parseOpeningHours({
+        hours: Array(7).fill({ open: "07:00", close: "24:00" })
+      })
+    ).toHaveLength(7);
+    expect(() =>
+      parseOpeningHours({
+        hours: Array(7).fill({ open: "24:00", close: "02:00" })
+      })
+    ).toThrow("HH:MM");
     expect(() =>
       parseOpeningHours({
         hours: Array(7).fill({ open: "7:00", close: "21:00" })

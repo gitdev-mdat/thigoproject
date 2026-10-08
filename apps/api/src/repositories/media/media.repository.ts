@@ -23,6 +23,10 @@ export class MediaRepository {
       .findOne({ where: { id, storeId } });
   }
 
+  countForStore(storeId: string): Promise<number> {
+    return this.db.getRepository(MediaAsset).count({ where: { storeId } });
+  }
+
   async remove(id: string): Promise<void> {
     await this.db.getRepository(MediaAsset).delete({ id });
   }

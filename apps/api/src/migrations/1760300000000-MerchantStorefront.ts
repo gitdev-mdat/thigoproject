@@ -22,6 +22,13 @@ export class MerchantStorefront1760300000000 implements MigrationInterface {
     );
   }
   async down(q: QueryRunner): Promise<void> {
+    const archived = (await q.query(
+      `SELECT count(*)::int AS n FROM "products" WHERE "archived_at" IS NOT NULL`
+    )) as { n: number }[];
+    if (archived[0]!.n > 0)
+      throw new Error(
+        "Cannot revert MerchantStorefront: archived products would become live and may break the old unique (store_id, name) rule."
+      );
     await q.query(`DROP TABLE "media_assets"`);
     await q.query(`DROP INDEX "UQ_products_store_name_live"`);
     await q.query(

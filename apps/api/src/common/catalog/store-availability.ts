@@ -2,7 +2,7 @@ import type { OpeningHours } from "../../entities/catalog/store.entity.js";
 
 /** Vietnam has no daylight saving time, so a fixed offset is exact. */
 const VIETNAM_OFFSET_MINUTES = 7 * 60;
-const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const TIME = /^(?:([01]\d|2[0-3]):([0-5]\d)|(24):(00))$/;
 
 export type StoreClosedReason = "UNPUBLISHED" | "PAUSED" | "OUTSIDE_HOURS";
 
@@ -15,9 +15,10 @@ export interface StoreAvailabilityInput {
 export function minutesOf(time: string): number {
   const match = TIME.exec(time);
   if (!match) throw new Error(`Invalid time ${time}`);
-  return Number(match[1]) * 60 + Number(match[2]);
+  return Number(match[1] ?? match[3]) * 60 + Number(match[2] ?? match[4]);
 }
 
+/** "24:00" is accepted only as a closing time. */
 export function isValidTime(value: unknown): value is string {
   return typeof value === "string" && TIME.test(value);
 }
@@ -38,8 +39,19 @@ export function withinOpeningHours(
   if (!hours) return true;
   const { day, minutes } = vietnamClock(now);
   const today = hours[day];
-  if (!today) return false;
-  return minutes >= minutesOf(today.open) && minutes < minutesOf(today.close);
+  if (today) {
+    const open = minutesOf(today.open);
+    const close = minutesOf(today.close);
+    // A close at or before the opening time means the store closes after midnight.
+    if (close > open ? minutes >= open && minutes < close : minutes >= open)
+      return true;
+  }
+  const yesterday = hours[(day + 6) % 7];
+  return (
+    !!yesterday &&
+    minutesOf(yesterday.close) < minutesOf(yesterday.open) &&
+    minutes < minutesOf(yesterday.close)
+  );
 }
 
 /** Why customers cannot order from this store right now, or null when they can. */
