@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   colors,
   radius,
@@ -8,82 +9,71 @@ import {
 } from "@thigo/design-tokens";
 
 import { Button } from "../../components/Button";
-import { DishRow } from "../../components/home/DishRow";
+import { Icon } from "../../components/Icon";
+import { IconButton } from "../../components/IconButton";
+import { CategoryTiles } from "../../components/home/CategoryTiles";
+import { DishCard } from "../../components/home/DishCard";
 import { Placeholder } from "../../components/home/Placeholder";
-import { PromoBanner } from "../../components/home/PromoBanner";
-import { RecentOrderCard } from "../../components/home/RecentOrderCard";
+import { RecentOrdersEntry } from "../../components/home/RecentOrdersEntry";
 import { SearchBar } from "../../components/home/SearchBar";
 import { SectionHeader } from "../../components/home/SectionHeader";
-import { ShortcutGrid } from "../../components/home/ShortcutGrid";
 import { StoreCard } from "../../components/home/StoreCard";
 import type { CustomerHome } from "../../hooks/useCustomerHome";
-import { usesDemoData } from "../../services/customerHome";
-import type { StoreCategory } from "../../types/home";
-import { androidTopInset } from "../../utils/layout";
+import type { StoreCategory } from "../../types/catalog";
 
-const categoryTitle: Record<StoreCategory, string> = {
-  food: "Quán ăn nổi bật",
-  coffee: "Quán cà phê nổi bật",
-  milk_tea: "Quán trà sữa nổi bật"
+const storesTitle: Record<StoreCategory, string> = {
+  FOOD: "Quán ăn",
+  COFFEE: "Quán cà phê",
+  MILK_TEA: "Quán trà sữa"
 };
 
-const dishTitle: Record<StoreCategory, string> = {
-  food: "Món ăn được gọi nhiều",
-  coffee: "Đồ uống được gọi nhiều",
-  milk_tea: "Trà sữa được gọi nhiều"
+const dishesTitle: Record<StoreCategory, string> = {
+  FOOD: "Món ngon nên thử",
+  COFFEE: "Đồ uống nên thử",
+  MILK_TEA: "Ly ngon nên thử"
 };
 
 type Props = {
   data: CustomerHome;
-  initial: string;
+  cartCount: number;
+  addressSlot: React.ReactNode;
+  recentOrders: { title: string; detail: string };
+  onOpenStore: (storeId: string, productId?: string) => void;
+  onOpenCart: () => void;
   onOpenOrders: () => void;
-  onOpenAccount: () => void;
 };
 
-export function HomeTab({ data, initial, onOpenOrders, onOpenAccount }: Props) {
-  const { home, status } = data;
+export function HomeTab({
+  data,
+  cartCount,
+  addressSlot,
+  recentOrders,
+  onOpenStore,
+  onOpenCart,
+  onOpenOrders
+}: Props) {
+  const { top } = useSafeAreaInsets();
   const searching = data.query.trim().length > 0;
   return (
     <ScrollView
       contentContainerStyle={styles.scroll}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: top + spacing.sm }]}>
         <View style={styles.topRow}>
-          <View style={styles.address} accessible>
-            <Text style={styles.pin} accessible={false}>
-              📍
-            </Text>
-            <View style={styles.addressText}>
-              <Text style={styles.caption}>
-                Giao đến{home ? ` · ${home.address.label}` : ""}
-              </Text>
-              {home ? (
-                <Text style={styles.addressLine} numberOfLines={1}>
-                  {home.address.line}
-                </Text>
-              ) : (
-                <Placeholder width="80%" height={20} rounded="small" />
-              )}
-            </View>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Tài khoản"
-            onPress={onOpenAccount}
-            style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
-          >
-            <Text style={styles.avatarText}>{initial}</Text>
-          </Pressable>
+          <View style={styles.flex}>{addressSlot}</View>
+          <IconButton
+            icon="bag"
+            label="Giỏ hàng"
+            badge={cartCount}
+            tone="floating"
+            onPress={onOpenCart}
+          />
         </View>
-        <View style={styles.greeting}>
-          <Text style={styles.title} accessibilityRole="header">
-            Hôm nay bạn muốn ăn gì?
-          </Text>
-          <Text style={styles.subtitle}>
-            Đồ ăn, cà phê, trà sữa giao tận nơi.
-          </Text>
-        </View>
+        <Text style={styles.title} accessibilityRole="header">
+          Hôm nay bạn muốn ăn gì?
+        </Text>
       </View>
 
       <View style={styles.searchWrap}>
@@ -91,94 +81,35 @@ export function HomeTab({ data, initial, onOpenOrders, onOpenAccount }: Props) {
       </View>
 
       <View style={styles.content}>
-        {status === "error" ? (
-          <View style={styles.errorCard}>
-            <Text style={styles.itemTitle}>Chưa tải được trang chủ</Text>
-            <Text style={styles.help}>Kiểm tra kết nối mạng rồi thử lại.</Text>
-            <Button label="Thử lại" onPress={data.reload} />
-          </View>
+        {data.status === "error" ? (
+          <ErrorCard onRetry={data.reload} />
         ) : searching ? (
-          <SearchResults data={data} />
+          <SearchResults data={data} onOpenStore={onOpenStore} />
         ) : (
           <>
-            {home ? (
-              <ShortcutGrid
-                shortcuts={home.shortcuts}
-                activeCategory={data.category}
-                onSelectCategory={(category) =>
-                  void data.selectCategory(category)
-                }
-                onOpenRecentOrders={onOpenOrders}
-              />
-            ) : (
-              <View style={styles.shortcutPlaceholders}>
-                {[0, 1, 2, 3].map((key) => (
+            {data.status === "loading" ? (
+              <View style={styles.tilePlaceholders}>
+                {[0, 1, 2].map((key) => (
                   <View key={key} style={styles.flex}>
-                    <Placeholder height={104} rounded="large" />
+                    <Placeholder height={112} rounded="large" />
                   </View>
                 ))}
               </View>
+            ) : (
+              <CategoryTiles
+                shortcuts={data.shortcuts}
+                active={data.category}
+                onSelect={(category) => void data.selectCategory(category)}
+              />
             )}
 
-            {status === "ready" && data.orders[0] ? (
-              <View style={styles.section}>
-                <SectionHeader
-                  title="Đơn gần đây"
-                  actionLabel="Xem tất cả"
-                  onAction={onOpenOrders}
-                />
-                <RecentOrderCard
-                  order={data.orders[0]}
-                  onPress={onOpenOrders}
-                />
-              </View>
-            ) : null}
+            <RecentOrdersEntry
+              title={recentOrders.title}
+              detail={recentOrders.detail}
+              onPress={onOpenOrders}
+            />
 
-            <View style={styles.section}>
-              <SectionHeader title={categoryTitle[data.category]} />
-              {data.recommendationsLoading || !data.recommendations ? (
-                data.recommendationsLoading ? (
-                  <View style={styles.storePlaceholders}>
-                    <Placeholder width={220} height={190} rounded="large" />
-                    <Placeholder width={220} height={190} rounded="large" />
-                  </View>
-                ) : (
-                  <Text style={styles.help}>Chưa tải được danh sách quán.</Text>
-                )
-              ) : (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.storeRow}
-                  style={styles.bleed}
-                >
-                  {data.recommendations.stores.map((store) => (
-                    <StoreCard key={store.id} store={store} width={220} />
-                  ))}
-                </ScrollView>
-              )}
-            </View>
-
-            {home?.promotions[0] ? (
-              <PromoBanner promotion={home.promotions[0]} />
-            ) : null}
-
-            {data.recommendations && !data.recommendationsLoading ? (
-              <View style={styles.section}>
-                <SectionHeader title={dishTitle[data.category]} />
-                <View>
-                  {data.recommendations.dishes.map((dish, index) => (
-                    <DishRow key={dish.id} dish={dish} divider={index > 0} />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {usesDemoData && status === "ready" ? (
-              <Text style={styles.demo}>
-                Dữ liệu minh hoạ cho bản phát triển.
-              </Text>
-            ) : null}
+            <Recommendations data={data} onOpenStore={onOpenStore} />
           </>
         )}
       </View>
@@ -186,20 +117,98 @@ export function HomeTab({ data, initial, onOpenOrders, onOpenAccount }: Props) {
   );
 }
 
-function SearchResults({ data }: { data: CustomerHome }) {
-  if (data.searchStatus === "loading")
+function Recommendations({
+  data,
+  onOpenStore
+}: Pick<Props, "data" | "onOpenStore">) {
+  const result = data.recommendations;
+  if (data.recommendationsStatus === "error")
     return (
-      <View style={styles.section}>
-        <Placeholder height={72} />
-        <Placeholder height={72} />
+      <View style={styles.notice}>
+        <Text style={styles.help}>Chưa tải được danh sách quán.</Text>
+        <Button
+          label="Thử lại"
+          variant="secondary"
+          onPress={() => void data.selectCategory(data.category)}
+        />
       </View>
     );
-  if (data.searchStatus === "error")
-    return <Text style={styles.help}>Chưa tìm được. Vui lòng thử lại.</Text>;
-  const results = data.searchResults;
-  if (!results || (!results.stores.length && !results.dishes.length))
+  if (!result || data.recommendationsStatus === "loading")
     return (
-      <View style={styles.errorCard}>
+      <View style={styles.section}>
+        <Placeholder width="50%" height={26} rounded="small" />
+        <View style={styles.rail}>
+          <Placeholder width={156} height={190} rounded="large" />
+          <Placeholder width={156} height={190} rounded="large" />
+          <Placeholder width={156} height={190} rounded="large" />
+        </View>
+        <Placeholder height={200} rounded="large" />
+      </View>
+    );
+  if (!result.stores.length)
+    return (
+      <View style={styles.notice}>
+        <Text style={styles.itemTitle}>Chưa có quán nào mở bán</Text>
+        <Text style={styles.help}>
+          Quán sẽ xuất hiện ở đây ngay khi bắt đầu nhận đơn.
+        </Text>
+      </View>
+    );
+  return (
+    <>
+      {result.dishes.length ? (
+        <View style={styles.section}>
+          <SectionHeader title={dishesTitle[data.category]} />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.bleed}
+            contentContainerStyle={styles.railContent}
+          >
+            {result.dishes.map((dish) => (
+              <DishCard
+                key={dish.id}
+                dish={dish}
+                onPress={() => onOpenStore(dish.storeId, dish.id)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+      <View style={styles.section}>
+        <SectionHeader
+          title={`${storesTitle[data.category]} (${result.stores.length})`}
+        />
+        {result.stores.map((store) => (
+          <StoreCard
+            key={store.id}
+            store={store}
+            onPress={() => onOpenStore(store.id)}
+          />
+        ))}
+      </View>
+    </>
+  );
+}
+
+function SearchResults({
+  data,
+  onOpenStore
+}: Pick<Props, "data" | "onOpenStore">) {
+  if (data.searchStatus === "error")
+    return <ErrorCard onRetry={data.retrySearch} />;
+  if (data.searchStatus === "loading" || !data.searchResults)
+    return (
+      <View style={styles.section}>
+        {[0, 1, 2].map((key) => (
+          <Placeholder key={key} height={72} />
+        ))}
+      </View>
+    );
+  const results = data.searchResults;
+  if (!results.stores.length && !results.dishes.length)
+    return (
+      <View style={styles.notice}>
         <Text style={styles.itemTitle}>
           Không tìm thấy “{data.query.trim()}”
         </Text>
@@ -214,21 +223,46 @@ function SearchResults({ data }: { data: CustomerHome }) {
         <View style={styles.section}>
           <SectionHeader title={`Quán (${results.stores.length})`} />
           {results.stores.map((store) => (
-            <StoreCard key={store.id} store={store} compact />
+            <StoreCard
+              key={store.id}
+              store={store}
+              compact
+              onPress={() => onOpenStore(store.id)}
+            />
           ))}
         </View>
       ) : null}
       {results.dishes.length ? (
         <View style={styles.section}>
           <SectionHeader title={`Món (${results.dishes.length})`} />
-          <View>
-            {results.dishes.map((dish, index) => (
-              <DishRow key={dish.id} dish={dish} divider={index > 0} />
-            ))}
-          </View>
+          {results.dishes.map((dish) => (
+            <DishCard
+              key={dish.id}
+              dish={dish}
+              layout="row"
+              onPress={() => onOpenStore(dish.storeId, dish.id)}
+            />
+          ))}
         </View>
       ) : null}
     </>
+  );
+}
+
+function ErrorCard({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View style={styles.notice}>
+      <View style={styles.noticeTitle}>
+        <Icon
+          name="close"
+          size={sizes.icon.small}
+          color={colors.status.danger}
+        />
+        <Text style={styles.itemTitle}>Chưa kết nối được THIGO</Text>
+      </View>
+      <Text style={styles.help}>Kiểm tra kết nối mạng rồi thử lại.</Text>
+      <Button label="Thử lại" onPress={onRetry} />
+    </View>
   );
 }
 
@@ -238,59 +272,29 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xl },
   flex: { flex: 1 },
   header: {
-    paddingTop: androidTopInset + spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.lg + SEARCH_OVERLAP,
-    gap: spacing.md,
+    paddingBottom: spacing.md + SEARCH_OVERLAP,
+    gap: spacing.sm,
     backgroundColor: colors.brand.primarySubtle,
     borderBottomLeftRadius: radius.large,
     borderBottomRightRadius: radius.large
   },
   topRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  address: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs
-  },
-  pin: { fontSize: sizes.icon.large },
-  addressText: { flex: 1, gap: spacing.xxs / 2 },
-  caption: { ...typography.role.caption, color: colors.text.secondary },
-  addressLine: { ...typography.role.itemTitle, color: colors.text.primary },
-  avatar: {
-    width: sizes.touchTarget.recommended,
-    height: sizes.touchTarget.recommended,
-    borderRadius: radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.brand.primary
-  },
-  pressed: { backgroundColor: colors.brand.primaryPressed },
-  avatarText: { ...typography.role.itemTitle, color: colors.text.inverse },
-  greeting: { gap: spacing.xxs },
   title: { ...typography.role.screenTitle, color: colors.text.primary },
-  subtitle: { ...typography.role.body, color: colors.text.secondary },
-  searchWrap: {
-    marginTop: -SEARCH_OVERLAP,
-    paddingHorizontal: spacing.md
-  },
+  searchWrap: { marginTop: -SEARCH_OVERLAP, paddingHorizontal: spacing.md },
   content: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.md,
     gap: spacing.lg
   },
-  shortcutPlaceholders: { flexDirection: "row", gap: spacing.xs },
+  tilePlaceholders: { flexDirection: "row", gap: spacing.xs },
   section: { gap: spacing.sm },
-  storePlaceholders: { flexDirection: "row", gap: spacing.sm },
+  rail: { flexDirection: "row", gap: spacing.sm, overflow: "hidden" },
   bleed: { marginHorizontal: -spacing.md },
-  storeRow: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xxs,
-    gap: spacing.sm
-  },
+  railContent: { paddingHorizontal: spacing.md, gap: spacing.sm },
   itemTitle: { ...typography.role.itemTitle, color: colors.text.primary },
   help: { ...typography.role.bodySecondary, color: colors.text.secondary },
-  errorCard: {
+  notice: {
     gap: spacing.sm,
     padding: spacing.md,
     borderRadius: radius.large,
@@ -298,9 +302,5 @@ const styles = StyleSheet.create({
     borderColor: colors.border.subtle,
     backgroundColor: colors.surface.primary
   },
-  demo: {
-    ...typography.role.caption,
-    color: colors.text.secondary,
-    textAlign: "center"
-  }
+  noticeTitle: { flexDirection: "row", alignItems: "center", gap: spacing.xs }
 });

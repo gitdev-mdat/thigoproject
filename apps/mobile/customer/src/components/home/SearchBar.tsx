@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import {
   colors,
   radius,
@@ -9,6 +9,7 @@ import {
 } from "@thigo/design-tokens";
 
 import { raisedShadow } from "../../utils/layout";
+import { Icon } from "../Icon";
 
 type Props = { value: string; onChangeText: (value: string) => void };
 
@@ -16,9 +17,7 @@ export function SearchBar({ value, onChangeText }: Props) {
   const [focused, setFocused] = useState(false);
   return (
     <View style={[styles.bar, raisedShadow, focused && styles.focused]}>
-      <Text style={styles.icon} accessible={false}>
-        🔍
-      </Text>
+      <Icon name="search" color={colors.text.secondary} />
       <TextInput
         accessibilityLabel="Tìm món ăn hoặc quán"
         placeholder="Tìm món ăn, quán, đồ uống…"
@@ -37,7 +36,11 @@ export function SearchBar({ value, onChangeText }: Props) {
           onPress={() => onChangeText("")}
           style={styles.clear}
         >
-          <Text style={styles.clearText}>✕</Text>
+          <Icon
+            name="close"
+            size={sizes.icon.small}
+            color={colors.text.secondary}
+          />
         </Pressable>
       ) : null}
     </View>
@@ -57,7 +60,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.elevated
   },
   focused: { borderColor: colors.border.focus, borderWidth: 2 },
-  icon: { fontSize: sizes.icon.standard - 2 },
   input: {
     flex: 1,
     minHeight: sizes.control.input,
@@ -69,6 +71,5 @@ const styles = StyleSheet.create({
     height: sizes.touchTarget.recommended,
     alignItems: "center",
     justifyContent: "center"
-  },
-  clearText: { ...typography.role.label, color: colors.text.secondary }
+  }
 });

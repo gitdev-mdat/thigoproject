@@ -1,65 +1,48 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, spacing, typography } from "@thigo/design-tokens";
 
-import type { StoreSummary } from "../../types/home";
-import { formatCount, formatRating } from "../../utils/format";
-import { raisedShadow } from "../../utils/layout";
-import { Chip } from "../Chip";
-import { ArtTile } from "./ArtTile";
+import type { StoreSummary } from "../../types/catalog";
+import { categoryLabel, districtOf } from "../../utils/storeLabels";
+import { RemoteImage } from "../RemoteImage";
 
 type Props = {
   store: StoreSummary;
-  width?: number;
-  /** A row layout for vertical lists such as search results. */
+  onPress: () => void;
+  /** A dense row for search results. */
   compact?: boolean;
 };
 
-export function StoreCard({ store, width, compact = false }: Props) {
-  const meta = (
-    <Text style={styles.meta} numberOfLines={1}>
-      <Text style={styles.star}>★ </Text>
-      <Text style={styles.rating}>{formatRating(store.rating)}</Text> (
-      {formatCount(store.ratingCount)}) · {store.etaMinutes.min}–
-      {store.etaMinutes.max} phút
-    </Text>
-  );
-  const label = `${store.name}, ${formatRating(store.rating)} sao, ${store.etaMinutes.min} đến ${store.etaMinutes.max} phút`;
-  if (compact)
-    return (
-      <View accessible accessibilityLabel={label} style={styles.row}>
-        <ArtTile art={store.art} size={56} />
-        <View style={styles.rowText}>
-          <Text style={styles.name} numberOfLines={1}>
-            {store.name}
-          </Text>
-          {meta}
-          <Text style={styles.rowTags} numberOfLines={1}>
-            {store.tags.join(" · ")}
-          </Text>
-        </View>
-      </View>
-    );
+export function StoreCard({ store, onPress, compact = false }: Props) {
+  const meta = `${categoryLabel[store.category]} · ${store.productCount} món · ${districtOf(store.addressLine)}`;
   return (
-    <View
-      accessible
-      accessibilityLabel={label}
-      style={[styles.card, raisedShadow, width ? { width } : null]}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${store.name}. ${meta}`}
+      accessibilityHint="Mở thực đơn của quán"
+      onPress={onPress}
+      style={({ pressed }) => [
+        compact ? styles.row : styles.card,
+        pressed && styles.pressed
+      ]}
     >
-      <View style={styles.banner}>
-        <ArtTile art={store.art} size={72} rounded="full" tone="neutral" />
-      </View>
-      <View style={styles.body}>
+      <RemoteImage
+        url={store.coverImageUrl}
+        style={compact ? styles.thumb : styles.cover}
+      />
+      <View style={compact ? styles.rowBody : styles.body}>
         <Text style={styles.name} numberOfLines={1}>
           {store.name}
         </Text>
-        {meta}
-        <View style={styles.tags}>
-          {store.tags.slice(0, 2).map((tag) => (
-            <Chip key={tag} label={tag} tone="brand" />
-          ))}
-        </View>
+        {!compact && store.description ? (
+          <Text style={styles.description} numberOfLines={1}>
+            {store.description}
+          </Text>
+        ) : null}
+        <Text style={styles.meta} numberOfLines={1}>
+          {meta}
+        </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -68,31 +51,25 @@ const styles = StyleSheet.create({
     borderRadius: radius.large,
     borderWidth: 1,
     borderColor: colors.border.subtle,
-    backgroundColor: colors.surface.elevated,
+    backgroundColor: colors.surface.primary,
     overflow: "hidden"
   },
-  banner: {
-    height: 104,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.brand.primarySubtle
-  },
-  body: { padding: spacing.sm, gap: spacing.xxs },
-  name: { ...typography.role.itemTitle, color: colors.text.primary },
-  meta: { ...typography.role.bodySecondary, color: colors.text.secondary },
-  star: { color: colors.text.primary },
-  rating: { ...typography.role.label, color: colors.text.primary },
-  tags: { flexDirection: "row", gap: spacing.xxs, marginTop: spacing.xxs },
+  pressed: { backgroundColor: colors.surface.secondary },
+  cover: { aspectRatio: 2.4, width: "100%" },
+  body: { padding: spacing.sm, paddingHorizontal: spacing.md, gap: 2 },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    padding: spacing.sm,
-    borderRadius: radius.large,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    backgroundColor: colors.surface.primary
+    paddingVertical: spacing.xs,
+    borderRadius: radius.medium
   },
-  rowText: { flex: 1, gap: spacing.xxs / 2 },
-  rowTags: { ...typography.role.caption, color: colors.text.secondary }
+  thumb: { width: 64, height: 64, borderRadius: radius.medium },
+  rowBody: { flex: 1, gap: 2 },
+  name: { ...typography.role.itemTitle, color: colors.text.primary },
+  description: {
+    ...typography.role.bodySecondary,
+    color: colors.text.secondary
+  },
+  meta: { ...typography.role.caption, color: colors.text.secondary }
 });

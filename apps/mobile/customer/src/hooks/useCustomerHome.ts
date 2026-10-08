@@ -1,62 +1,63 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { customerHomeSource } from "../services/customerHome";
+import { catalogApi } from "../services/catalog";
+import type { Address, OrderSummary } from "../types/orders";
 import type {
-  CustomerHomeResponse,
-  RecentOrder,
+  HomeShortcut,
   RecommendationsResponse,
   SearchResponse,
   StoreCategory
-} from "../types/home";
+} from "../types/catalog";
 
 type Status = "loading" | "ready" | "error";
 
 export function useCustomerHome() {
   const [status, setStatus] = useState<Status>("loading");
-  const [home, setHome] = useState<CustomerHomeResponse>();
-  const [orders, setOrders] = useState<RecentOrder[]>([]);
-  const [category, setCategory] = useState<StoreCategory>("food");
+  const [shortcuts, setShortcuts] = useState<HomeShortcut[]>([]);
+  const [address, setAddress] = useState<Address | null>(null);
+  const [recentOrder, setRecentOrder] = useState<OrderSummary | null>(null);
+  const [category, setCategory] = useState<StoreCategory>("FOOD");
   const [recommendations, setRecommendations] =
     useState<RecommendationsResponse>();
-  const [recommendationsLoading, setRecommendationsLoading] = useState(true);
+  const [recommendationsStatus, setRecommendationsStatus] =
+    useState<Status>("loading");
   const latestCategory = useRef(category);
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResponse>();
   const [searchStatus, setSearchStatus] = useState<Status>("ready");
+  const [searchAttempt, setSearchAttempt] = useState(0);
 
-  const load = useCallback(async () => {
-    setStatus("loading");
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setStatus("loading");
     try {
-      const [homeResponse, ordersResponse] = await Promise.all([
-        customerHomeSource.getHome(),
-        customerHomeSource.getRecentOrders()
-      ]);
-      setHome(homeResponse);
-      setOrders(ordersResponse.orders);
+      const home = await catalogApi.home();
+      setShortcuts(home.shortcuts);
+      setAddress(home.defaultAddress);
+      setRecentOrder(home.recentOrder);
       setStatus("ready");
     } catch {
-      setStatus("error");
+      if (!quiet) setStatus("error");
     }
   }, []);
 
   const loadRecommendations = useCallback(async (next: StoreCategory) => {
     latestCategory.current = next;
     setCategory(next);
-    setRecommendationsLoading(true);
+    setRecommendationsStatus("loading");
     try {
-      const response = await customerHomeSource.getRecommendations(next);
+      const response = await catalogApi.recommendations(next);
       // Ignore answers for a category the user has already switched away from.
-      if (latestCategory.current === next) setRecommendations(response);
+      if (latestCategory.current !== next) return;
+      setRecommendations(response);
+      setRecommendationsStatus("ready");
     } catch {
-      if (latestCategory.current === next) setRecommendations(undefined);
-    } finally {
-      if (latestCategory.current === next) setRecommendationsLoading(false);
+      if (latestCategory.current === next) setRecommendationsStatus("error");
     }
   }, []);
 
   useEffect(() => {
     void load();
-    void loadRecommendations("food");
+    void loadRecommendations("FOOD");
   }, [load, loadRecommendations]);
 
   useEffect(() => {
@@ -69,7 +70,7 @@ export function useCustomerHome() {
     setSearchStatus("loading");
     let cancelled = false;
     const timer = setTimeout(() => {
-      customerHomeSource
+      catalogApi
         .search(trimmed)
         .then((response) => {
           if (cancelled) return;
@@ -79,24 +80,30 @@ export function useCustomerHome() {
         .catch(() => {
           if (!cancelled) setSearchStatus("error");
         });
-    }, 250);
+    }, 300);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, searchAttempt]);
 
   return {
     status,
+    shortcuts,
+    address,
+    setAddress,
+    recentOrder,
+    /** Refreshes address and latest order without showing placeholders. */
+    refresh: () => void load(true),
     query,
     setQuery,
     searchResults,
     searchStatus,
-    home,
-    orders,
+    retrySearch: () => setSearchAttempt((value) => value + 1),
     category,
-    recommendations,
-    recommendationsLoading,
+    recommendations:
+      recommendations?.category === category ? recommendations : undefined,
+    recommendationsStatus,
     selectCategory: loadRecommendations,
     reload: () => {
       void load();

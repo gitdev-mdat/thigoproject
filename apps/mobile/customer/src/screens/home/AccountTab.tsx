@@ -1,17 +1,20 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, radius, spacing, typography } from "@thigo/design-tokens";
 
 import { BrandMark } from "../../components/BrandMark";
 import { Button } from "../../components/Button";
 import type { AuthSession } from "../../hooks/useAuthSession";
-import { androidTopInset } from "../../utils/layout";
 import { maskPhone } from "../../utils/phone";
 
 type Props = { session: AuthSession; initial: string };
 
 export function AccountTab({ session, initial }: Props) {
+  const { top } = useSafeAreaInsets();
   return (
-    <ScrollView contentContainerStyle={styles.scroll}>
+    <ScrollView
+      contentContainerStyle={[styles.scroll, { paddingTop: top + spacing.md }]}
+    >
       <Text style={styles.title} accessibilityRole="header">
         Tài khoản
       </Text>
@@ -42,7 +45,6 @@ export function AccountTab({ session, initial }: Props) {
 
 const styles = StyleSheet.create({
   scroll: {
-    paddingTop: androidTopInset + spacing.lg,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.xl,
     gap: spacing.lg

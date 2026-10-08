@@ -9,7 +9,7 @@ import { colors, spacing, typography } from "@thigo/design-tokens";
 
 import { Button } from "../components/Button";
 import { useAuthSession } from "../hooks/useAuthSession";
-import { HomeScreen } from "./HomeScreen";
+import { CustomerApp } from "./CustomerApp";
 import { LoginScreen } from "./LoginScreen";
 
 export function RootScreen() {
@@ -42,7 +42,8 @@ export function RootScreen() {
         </View>
       </SafeAreaView>
     );
-  if (session.step === "authenticated") return <HomeScreen session={session} />;
+  if (session.step === "authenticated")
+    return <CustomerApp session={session} />;
   return <LoginScreen session={session} />;
 }
 
