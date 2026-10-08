@@ -25,6 +25,11 @@ export const MAX_IMAGES_PER_STORE = 300;
 /** Uploads per merchant per minute; enough for a burst of edits, not a flood. */
 export const MAX_UPLOADS_PER_MINUTE = 20;
 const MINUTE_MS = 60_000;
+/**
+ * How long a detached image is kept before it may be deleted, so a checkout
+ * that read the old product just before the edit still finds its image.
+ */
+export const RELEASE_DELAY_MS = 15 * MINUTE_MS;
 
 export function mediaUrl(id: string): string {
   return `${MEDIA_URL_PREFIX}${id}`;
@@ -90,10 +95,16 @@ export class MediaService {
   }
 
   /**
-   * Deletes images an edit or delete just detached, unless something else
-   * (another product, the other store image, a past order) still shows them.
-   * Best effort: a failure leaves an orphan, never a broken image.
+   * Deletes images an edit or delete just detached, after RELEASE_DELAY_MS,
+   * if nothing (a store image, any product, an order line) shows them by then.
+   * In memory: a restart in between leaves an orphan, never a broken image.
    */
+  scheduleRelease(urls: (string | null | undefined)[]): void {
+    if (!urls.some(Boolean)) return;
+    setTimeout(() => void this.releaseUnused(urls), RELEASE_DELAY_MS).unref();
+  }
+
+  /** Deletes the given images now unless something still shows them. */
   async releaseUnused(urls: (string | null | undefined)[]): Promise<void> {
     for (const url of new Set(urls)) {
       const id = url?.startsWith(MEDIA_URL_PREFIX)
@@ -121,7 +132,10 @@ export class MediaService {
       );
     recent.push(now);
     this.recentUploads.set(userId, recent);
-    if (this.recentUploads.size > 10_000) this.recentUploads.clear();
+    if (this.recentUploads.size > 10_000)
+      for (const [id, times] of this.recentUploads)
+        if (times.every((at) => now - at >= MINUTE_MS))
+          this.recentUploads.delete(id);
   }
 
   /** The URL for one of this store's uploads, or 400 when it is not theirs. */

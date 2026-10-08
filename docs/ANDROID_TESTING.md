@@ -119,10 +119,10 @@ Run this on the emulator with merchant **0860000005**. Before you start, put a f
 0860000005 opens setup only until it has created a store. To repeat F1 later, provision another local merchant account (development database only; this is what account provisioning does, not self-registration):
 
 ```powershell
-docker compose exec postgres psql -U thigo -d thigo -c "with u as (insert into users (phone) values ('+84860000006') returning id) insert into user_roles (user_id, role) select id, 'MERCHANT' from u"
+docker compose exec postgres psql -U thigo -d thigo -c "insert into users (phone) values ('+84860000006') on conflict do nothing; insert into user_roles (user_id, role) select id, 'MERCHANT' from users where phone = '+84860000006' on conflict do nothing"
 ```
 
-Then sign in as 0860000006.
+Then sign in as 0860000006. Running it again is harmless; once that account has a store, use the next number (0860000007, …).
 
 | #   | Check                                                                                                                                                                                                            | Result |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
@@ -139,6 +139,7 @@ Then sign in as 0860000006.
 | F11 | Merchant: turn "Đang nhận đơn" off; the Đơn hàng header shows "Đang tạm ngưng nhận đơn" and the customer store shows it as closed. Turn it back on                                                               |        |
 | F12 | Sign in as 0860000002 (seeded store, no phone): it stays published and shows "còn thiếu thông tin"; nothing was unpublished                                                                                      |        |
 | F13 | Kill and reopen the Merchant app: the session and the store come back; images still load after restarting `pnpm dev:api`                                                                                         |        |
+| F14 | Login keyboard: on the phone and OTP steps the field and the main button stay above the keyboard. The login screens deliberately keep the F01 keyboard setting; report it if the keyboard covers them            |        |
 
 Confirm the database afterwards:
 

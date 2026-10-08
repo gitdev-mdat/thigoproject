@@ -141,7 +141,7 @@ export class MerchantCatalogService {
     );
     if (!updated) throw new ConflictException(DUPLICATE_PRODUCT);
     if (patch.imageUrl !== undefined && patch.imageUrl !== product.imageUrl)
-      await this.media.releaseUnused([product.imageUrl]);
+      this.media.scheduleRelease([product.imageUrl]);
     return toMerchantProduct(updated);
   }
 
@@ -157,8 +157,7 @@ export class MerchantCatalogService {
     const product = await this.product(store.id, id);
     const outcome = await this.storefront.removeProduct(store.id, id);
     // An archived product keeps its image; a deleted one may free it.
-    if (outcome === "deleted")
-      await this.media.releaseUnused([product.imageUrl]);
+    if (outcome === "deleted") this.media.scheduleRelease([product.imageUrl]);
     return { outcome, catalog: await this.catalog(userId) };
   }
 

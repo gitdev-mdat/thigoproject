@@ -26,14 +26,14 @@ At every start the API creates the directory if needed and writes and deletes a 
 ## Upload rules
 
 - JPEG, PNG or WebP, detected from the file's bytes; at most 5 MB.
-- A merchant may upload 20 images a minute (429 beyond that). The counter is in memory, which matches the single-instance limit above.
+- A merchant may upload 20 images a minute (429 beyond that). The counter is in memory, which matches the single-instance limit above. It limits stored uploads; the body (at most 5 MB) has already been received when it is counted, so it does not save bandwidth.
 - A store may keep at most 300 uploads.
 - A store can attach only images it uploaded.
 - Responses carry `Cache-Control: public, max-age=31536000, immutable`, `nosniff` and a sandbox CSP. Ids are random UUIDs; images are public catalog content.
 
 ## Clean-up
 
-Replacing or removing a logo, cover or product image, or deleting a product, deletes the old image unless another store image, product or past order line still uses it. Archived products keep their images because order history shows them.
+Replacing or removing a logo, cover or product image, or deleting a product, schedules the old image for deletion 15 minutes later. At that point it is deleted only if no store image, product (archived included) or order line uses it. The delay lets a checkout that read the product just before the edit save its order line with the old image. The schedule is in memory, so an API restart in between leaves the file as an orphan, never a broken image. Archived products keep their images because order history shows them.
 
 Known gap: an image that is uploaded but never attached (for example, a form abandoned before saving) is not removed yet. The 300-per-store cap bounds it. The follow-up is a periodic job that removes `media_assets` rows older than a day that nothing references, using the same check as above.
 

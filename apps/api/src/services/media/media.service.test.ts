@@ -3,7 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { MediaRepository } from "../../repositories/media/media.repository.js";
 import type { MediaFileStore } from "../../repositories/media/media-file.store.js";
 import type { StorefrontRepository } from "../../repositories/merchant/storefront.repository.js";
-import { MAX_UPLOADS_PER_MINUTE, MediaService } from "./media.service.js";
+import {
+  MAX_UPLOADS_PER_MINUTE,
+  MediaService,
+  RELEASE_DELAY_MS
+} from "./media.service.js";
 
 const PNG = Buffer.from(
   "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489",
@@ -67,5 +71,19 @@ describe("media service", () => {
     expect(media.isReferenced).toHaveBeenCalledTimes(2);
     expect(media.remove).toHaveBeenCalledExactlyOnceWith(FREE.slice(7));
     expect(files.remove).toHaveBeenCalledExactlyOnceWith(FREE.slice(7));
+  });
+
+  it("waits before releasing so an in-flight checkout keeps its image", async () => {
+    vi.useFakeTimers();
+    try {
+      const { service, media } = setup();
+      service.scheduleRelease([FREE]);
+      await vi.advanceTimersByTimeAsync(RELEASE_DELAY_MS - 1);
+      expect(media.isReferenced).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(media.remove).toHaveBeenCalledExactlyOnceWith(FREE.slice(7));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

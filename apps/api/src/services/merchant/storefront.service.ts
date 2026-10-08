@@ -163,7 +163,7 @@ export class StorefrontService {
           ? null
           : await this.media.ownedUrl(store.id, coverMediaId);
     await this.storefront.updateStore(store.id, patch);
-    await this.media.releaseUnused([
+    this.media.scheduleRelease([
       patch.logoImageUrl !== undefined ? store.logoImageUrl : null,
       patch.coverImageUrl !== undefined ? store.coverImageUrl : null
     ]);

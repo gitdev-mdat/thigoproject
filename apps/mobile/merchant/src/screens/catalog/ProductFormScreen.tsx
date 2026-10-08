@@ -159,7 +159,11 @@ function ProductForm({
   const draft = { name, categoryId, price, description, isAvailable };
   const [initial] = useState(() => draft);
   const guard = useLeaveGuard({
-    dirty: isDirty(initial, draft) || imageMediaId !== undefined,
+    // An image still uploading counts as an unsaved change.
+    dirty:
+      isDirty(initial, draft) ||
+      imageMediaId !== undefined ||
+      upload.status === "uploading",
     busy: saving || deleting,
     nav
   });
