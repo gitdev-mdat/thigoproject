@@ -2,10 +2,12 @@ import {
   ActivityIndicator,
   SafeAreaView,
   StyleSheet,
-  Text
+  Text,
+  View
 } from "react-native";
 import { colors, spacing, typography } from "@thigo/design-tokens";
 
+import { Button } from "../components/Button";
 import { useAuthSession } from "../hooks/useAuthSession";
 import { HomeScreen } from "./HomeScreen";
 import { LoginScreen } from "./LoginScreen";
@@ -22,6 +24,24 @@ export function RootScreen() {
         <Text style={styles.help}>Đang kiểm tra phiên đăng nhập…</Text>
       </SafeAreaView>
     );
+  if (session.step === "restoreFailed")
+    return (
+      <SafeAreaView style={styles.center}>
+        <View style={styles.panel}>
+          <Text style={styles.title} accessibilityRole="header">
+            Chưa kết nối được THIGO
+          </Text>
+          <Text style={styles.help}>
+            Kiểm tra kết nối mạng rồi thử lại. Bạn vẫn đang đăng nhập.
+          </Text>
+          <Button
+            label="Thử lại"
+            style={styles.retry}
+            onPress={() => void session.retryRestore()}
+          />
+        </View>
+      </SafeAreaView>
+    );
   if (session.step === "authenticated") return <HomeScreen session={session} />;
   return <LoginScreen session={session} />;
 }
@@ -34,5 +54,22 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     backgroundColor: colors.surface.primary
   },
-  help: { ...typography.role.bodySecondary, color: colors.text.secondary }
+  // SafeAreaView replaces its own padding with insets on iOS, so the gutter lives here.
+  panel: {
+    alignSelf: "stretch",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md
+  },
+  title: {
+    ...typography.role.sectionTitle,
+    color: colors.text.primary,
+    textAlign: "center"
+  },
+  help: {
+    ...typography.role.bodySecondary,
+    color: colors.text.secondary,
+    textAlign: "center"
+  },
+  retry: { alignSelf: "stretch", marginTop: spacing.xs }
 });

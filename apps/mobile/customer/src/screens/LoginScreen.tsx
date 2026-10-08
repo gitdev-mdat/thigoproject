@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import {
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -32,11 +34,25 @@ type Props = { session: AuthSession };
 
 export function LoginScreen({ session }: Props) {
   const isOtp = session.step === "otp";
+  const { changePhone } = session;
+
+  // Android back returns from the code step to the phone step instead of leaving the app.
+  useEffect(() => {
+    if (!isOtp) return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        changePhone();
+        return true;
+      }
+    );
+    return () => subscription.remove();
+  }, [isOtp, changePhone]);
   return (
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -78,7 +94,6 @@ export function LoginScreen({ session }: Props) {
                     value={session.otp}
                     onChangeText={session.updateOtp}
                     error={session.error}
-                    editable={!session.busy}
                   />
                   <FieldMessage error={session.error} />
                 </View>

@@ -10,7 +10,8 @@ import {
 } from "../services/auth";
 import { isLikelyVietnamesePhone } from "../utils/phone";
 
-export type AuthStep = "restoring" | "phone" | "otp" | "authenticated";
+export type AuthStep =
+  "restoring" | "restoreFailed" | "phone" | "otp" | "authenticated";
 
 export function useAuthSession() {
   const [step, setStep] = useState<AuthStep>("restoring");
@@ -23,22 +24,33 @@ export function useAuthSession() {
   const [cooldown, setCooldown] = useState(0);
   const verifying = useRef(false);
 
-  useEffect(() => {
-    void (async () => {
-      const token = await sessionStore.read();
-      if (!token) return setStep("phone");
-      try {
-        const current = await authClient.getCurrentUser(token);
-        await authClient.checkAccess(APP_ROLE, token);
-        setUser(current);
-        setStep("authenticated");
-      } catch {
+  const restore = useCallback(async () => {
+    setStep("restoring");
+    const token = await sessionStore.read();
+    if (!token) return setStep("phone");
+    try {
+      const current = await authClient.getCurrentUser(token);
+      await authClient.checkAccess(APP_ROLE, token);
+      setUser(current);
+      setStep("authenticated");
+    } catch (e) {
+      // Only a rejected session is cleared; an unreachable API keeps it for a retry.
+      if (
+        e instanceof AuthError &&
+        (e.code === "unauthorized" || e.code === "forbidden")
+      ) {
         await sessionStore.clear();
         setNotice("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         setStep("phone");
+      } else {
+        setStep("restoreFailed");
       }
-    })();
+    }
   }, []);
+
+  useEffect(() => {
+    void restore();
+  }, [restore]);
 
   useEffect(() => {
     if (!cooldown) return;
@@ -89,6 +101,8 @@ export function useAuthSession() {
         setStep("authenticated");
       } catch (e) {
         setError(authErrorMessage(e, "verify"));
+        // A rejected code is cleared so the next attempt starts from the first cell.
+        if (e instanceof AuthError && e.code === "invalid") setOtpValue("");
       } finally {
         verifying.current = false;
         setBusy(false);
@@ -99,6 +113,7 @@ export function useAuthSession() {
 
   const updateOtp = useCallback(
     (value: string) => {
+      if (verifying.current) return;
       const digits = value.replace(/\D/g, "").slice(0, 6);
       setOtpValue(digits);
       setError("");
@@ -118,8 +133,12 @@ export function useAuthSession() {
     const token = await sessionStore.read();
     try {
       await authClient.logout(token ?? undefined);
-    } catch {
-      setNotice("Đã đăng xuất trên thiết bị này. Máy chủ hiện chưa phản hồi.");
+    } catch (e) {
+      // A session the server already revoked is still a successful logout.
+      if (!(e instanceof AuthError && e.code === "unauthorized"))
+        setNotice(
+          "Đã đăng xuất trên thiết bị này. Máy chủ hiện chưa phản hồi."
+        );
     } finally {
       await sessionStore.clear();
       setUser(undefined);
@@ -143,7 +162,8 @@ export function useAuthSession() {
     requestOtp,
     verify: () => verify(otp),
     changePhone,
-    logout
+    logout,
+    retryRestore: restore
   };
 }
 
