@@ -12,7 +12,10 @@ import type {
   QuoteDto,
   QuoteLineDto
 } from "../../dto/ordering/ordering.dto.js";
-import { OrderStatus } from "../../entities/ordering/order.entity.js";
+import {
+  OrderStatus,
+  type Order
+} from "../../entities/ordering/order.entity.js";
 import type { AuthenticatedUser } from "../../guards/role.guard.js";
 import { CatalogRepository } from "../../repositories/catalog/catalog.repository.js";
 import { AddressRepository } from "../../repositories/ordering/address.repository.js";
@@ -70,6 +73,7 @@ export class CheckoutService {
               `${option.name} của ${product.name} tạm hết.`
             );
           options.push({
+            optionId: option.id,
             groupName: group.name,
             name: option.name,
             priceDeltaVnd: option.priceDeltaVnd
@@ -123,7 +127,11 @@ export class CheckoutService {
       user.id,
       input.idempotencyKey
     );
-    if (previous) return toOrderDetail(previous);
+    if (previous) {
+      if (!isSameRequest(previous, input))
+        throw new ConflictException(DIFFERENT_REQUEST_MESSAGE);
+      return toOrderDetail(previous);
+    }
     const address = await this.addresses.find(input.addressId, user.id);
     if (!address)
       throw new BadRequestException("Vui lòng chọn địa chỉ giao hàng.");
@@ -160,6 +168,34 @@ export class CheckoutService {
       ? await this.orders.findForCustomer(id, user.id)
       : await this.orders.findByIdempotencyKey(user.id, input.idempotencyKey);
     if (!order) throw new NotFoundException();
+    if (!id && !isSameRequest(order, input))
+      throw new ConflictException(DIFFERENT_REQUEST_MESSAGE);
     return toOrderDetail(order);
   }
+}
+
+const DIFFERENT_REQUEST_MESSAGE =
+  "Yêu cầu đặt đơn này đã được dùng cho một giỏ hàng khác. Vui lòng thử lại.";
+
+/** A replayed idempotency key must describe the same store and cart lines. */
+export function isSameRequest(order: Order, input: PlaceOrderInput): boolean {
+  const lineKey = (productId: string | null, quantity: number, ids: string[]) =>
+    `${productId}:${quantity}:${[...ids].sort().join(",")}`;
+  const stored = order.items
+    .map((item) =>
+      lineKey(
+        item.productId,
+        item.quantity,
+        item.options.map((option) => option.optionId ?? "")
+      )
+    )
+    .sort();
+  const requested = input.items
+    .map((item) => lineKey(item.productId, item.quantity, item.optionIds))
+    .sort();
+  return (
+    order.storeId === input.storeId &&
+    stored.length === requested.length &&
+    stored.every((line, index) => line === requested[index])
+  );
 }

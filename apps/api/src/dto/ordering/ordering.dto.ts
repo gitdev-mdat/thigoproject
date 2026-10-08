@@ -156,7 +156,12 @@ export interface QuoteLineDto {
   quantity: number;
   unitPriceVnd: number;
   lineTotalVnd: number;
-  options: { groupName: string; name: string; priceDeltaVnd: number }[];
+  options: {
+    optionId?: string;
+    groupName: string;
+    name: string;
+    priceDeltaVnd: number;
+  }[];
 }
 
 export interface QuoteDto {

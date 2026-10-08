@@ -37,9 +37,12 @@ export class DriverDeliveryService {
         DRIVER_ACTIVE_STATUSES,
         1
       );
+      if (active[0] && active[0].id !== id)
+        throw new ConflictException("Bạn đang có một đơn chưa hoàn tất.");
+      const order = await this.orders.findById(id);
       throw new ConflictException(
-        active[0] && active[0].id !== id
-          ? "Bạn đang có một đơn chưa hoàn tất."
+        order?.status === OrderStatus.PENDING && !order.driverUserId
+          ? "Quán chưa xác nhận đơn này."
           : "Đơn này đã có tài xế khác nhận."
       );
     }

@@ -83,6 +83,10 @@ export class OrderRepository {
     return this.find({ customerUserId, idempotencyKey });
   }
 
+  findById(id: string) {
+    return this.find({ id });
+  }
+
   findForStore(id: string, storeId: string) {
     return this.find({ id, storeId });
   }

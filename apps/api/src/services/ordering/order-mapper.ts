@@ -73,13 +73,30 @@ export function toMerchantOrder(order: Order): OrderDetailDto {
   return { ...detail, delivery: { label: "", line: "", note: null } };
 }
 
-/** A driver sees the customer's phone only once the delivery is theirs. */
+/** Area part of an address line, e.g. "Q.1, TP. Hồ Chí Minh". */
+export function deliveryArea(line: string): string {
+  const parts = line
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts.slice(-2).join(", ");
+}
+
+/**
+ * A driver sees the customer's phone, exact address and notes only once the
+ * delivery is theirs; open jobs show just the district so they can choose.
+ */
 export function toDelivery(
   order: Order,
   assignedToViewer: boolean
 ): DeliveryDto {
+  const detail = toOrderDetail(order);
+  if (assignedToViewer)
+    return { ...detail, customerPhone: order.customerPhone };
   return {
-    ...toOrderDetail(order),
-    customerPhone: assignedToViewer ? order.customerPhone : null
+    ...detail,
+    customerNote: null,
+    delivery: { label: "", line: deliveryArea(order.deliveryLine), note: null },
+    customerPhone: null
   };
 }

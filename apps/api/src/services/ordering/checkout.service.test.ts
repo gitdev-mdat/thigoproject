@@ -150,15 +150,31 @@ describe("CheckoutService.place", () => {
     expect(items[0]).toMatchObject({ unitPriceVnd: 45000, quantity: 2 });
   });
 
-  it("returns the existing order for a repeated idempotency key without pricing again", async () => {
-    const { service, orders } = setup();
-    orders.findByIdempotencyKey.mockResolvedValueOnce({
+  const existing = (quantity: number) =>
+    ({
       id: "existing",
       code: "TGAAAAAA",
       status: "PENDING",
       storeId: STORE,
       store: { name: "Mây", coverImageUrl: null, addressLine: "x" },
-      items: [],
+      items: [
+        {
+          productId: TEA,
+          productName: "Trà sữa",
+          imageUrl: null,
+          unitPriceVnd: 45000,
+          quantity,
+          lineTotalVnd: 45000 * quantity,
+          options: [
+            {
+              optionId: SIZE_M,
+              groupName: "Kích cỡ",
+              name: "M",
+              priceDeltaVnd: 0
+            }
+          ]
+        }
+      ],
       totalVnd: 1,
       subtotalVnd: 1,
       deliveryFeeVnd: 0,
@@ -171,9 +187,22 @@ describe("CheckoutService.place", () => {
       pickedUpAt: null,
       deliveredAt: null,
       closedAt: null
-    } as never);
+    }) as never;
+
+  it("returns the existing order for a repeated idempotency key without pricing again", async () => {
+    const { service, orders } = setup();
+    orders.findByIdempotencyKey.mockResolvedValueOnce(existing(2));
     const result = await service.place(user, input);
     expect(result.id).toBe("existing");
+    expect(orders.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a repeated idempotency key that carries a different cart", async () => {
+    const { service, orders } = setup();
+    orders.findByIdempotencyKey.mockResolvedValueOnce(existing(5));
+    await expect(service.place(user, input)).rejects.toBeInstanceOf(
+      ConflictException
+    );
     expect(orders.create).not.toHaveBeenCalled();
   });
 });

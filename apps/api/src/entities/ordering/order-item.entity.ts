@@ -10,6 +10,8 @@ import { Order } from "./order.entity.js";
 
 /** Option choices are copied onto the line so later menu edits never rewrite history. */
 export interface OrderItemOption {
+  /** Source option id; lets a replayed request be matched to this order. */
+  optionId?: string;
   groupName: string;
   name: string;
   priceDeltaVnd: number;
