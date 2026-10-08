@@ -7,6 +7,7 @@ export type AuthErrorCode =
   | "cooldown"
   | "unavailable"
   | "network"
+  | "timeout"
   | "unknown";
 
 export class AuthError extends Error {
@@ -20,7 +21,15 @@ type Options = {
   baseUrl: string;
   mode: "bearer" | "cookie";
   fetch?: typeof globalThis.fetch;
+  /** Abort a request that has not answered in time. Defaults to 15 s. */
+  timeoutMs?: number;
 };
+
+/**
+ * React Native's Android HTTP client has no default timeout, so an unreachable
+ * API host could otherwise leave a request (and the screen waiting on it) pending forever.
+ */
+export const DEFAULT_AUTH_TIMEOUT_MS = 15_000;
 
 export function createAuthClient(options: Options) {
   const request = async <T>(
@@ -28,7 +37,16 @@ export function createAuthClient(options: Options) {
     init: RequestInit = {},
     token?: string
   ): Promise<T> => {
-    try {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Rejects even if a fetch implementation ignores the abort signal.
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new AuthError("timeout"));
+      }, options.timeoutMs ?? DEFAULT_AUTH_TIMEOUT_MS);
+    });
+    const send = async (): Promise<T> => {
       const response = await (options.fetch ?? globalThis.fetch)(
         `${options.baseUrl.replace(/\/$/, "")}${path}`,
         {
@@ -40,7 +58,8 @@ export function createAuthClient(options: Options) {
             ...(init.body ? { "content-type": "application/json" } : {}),
             ...(token ? { authorization: `Bearer ${token}` } : {}),
             ...init.headers
-          }
+          },
+          signal: controller.signal
         }
       );
       if (!response.ok) {
@@ -59,9 +78,15 @@ export function createAuthClient(options: Options) {
         throw new AuthError(code);
       }
       return (await response.json()) as T;
+    };
+    try {
+      return await Promise.race([send(), timeout]);
     } catch (error) {
       if (error instanceof AuthError) throw error;
+      if (controller.signal.aborted) throw new AuthError("timeout");
       throw new AuthError("network");
+    } finally {
+      clearTimeout(timer);
     }
   };
   return {

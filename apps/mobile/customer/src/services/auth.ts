@@ -1,10 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import {
-  AuthError,
-  createAuthClient,
-  type ApplicationRole
-} from "@thigo/auth-client";
+import { createAuthClient, type ApplicationRole } from "@thigo/auth-client";
 
 export const APP_ROLE: ApplicationRole = "CUSTOMER";
 /** Matches the API default `OTP_RESEND_SECONDS`. */
@@ -32,25 +28,4 @@ export const sessionStore = {
   clear: () => SecureStore.deleteItemAsync(sessionKey)
 };
 
-export function authErrorMessage(
-  error: unknown,
-  stage: "request" | "verify"
-): string {
-  if (!(error instanceof AuthError))
-    return "Không thể kết nối. Vui lòng thử lại.";
-  switch (error.code) {
-    case "forbidden":
-      return "Số điện thoại này chưa được phép dùng ứng dụng Khách hàng.";
-    case "invalid":
-      // The API answers 400 for an invalid phone, a resend cooldown, or a wrong code.
-      return stage === "verify"
-        ? "Mã OTP không đúng hoặc đã hết hạn."
-        : "Chưa gửi được mã. Kiểm tra số điện thoại hoặc đợi giây lát rồi thử lại.";
-    case "cooldown":
-      return "Bạn vừa yêu cầu mã. Vui lòng đợi rồi thử lại.";
-    case "unavailable":
-      return "Dịch vụ gửi mã tạm thời chưa sẵn sàng.";
-    default:
-      return "Không thể kết nối. Vui lòng thử lại.";
-  }
-}
+export { authErrorMessage } from "./authMessages";

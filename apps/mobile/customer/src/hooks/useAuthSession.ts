@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthError, type AuthUser } from "@thigo/auth-client";
 
 import {
@@ -8,7 +8,7 @@ import {
   authErrorMessage,
   sessionStore
 } from "../services/auth";
-import { isLikelyVietnamesePhone } from "../utils/phone";
+import { createOtpRequest, type OtpRequestPatch } from "../services/otpRequest";
 
 export type AuthStep =
   "restoring" | "restoreFailed" | "phone" | "otp" | "authenticated";
@@ -66,23 +66,27 @@ export function useAuthSession() {
     setError("");
   }, []);
 
-  const requestOtp = useCallback(async () => {
-    if (!isLikelyVietnamesePhone(phone))
-      return setError("Số chưa hợp lệ. Ví dụ: 0901 234 567.");
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      await authClient.requestOtp(phone, APP_ROLE);
-      setOtpValue("");
-      setStep("otp");
-      setCooldown(OTP_RESEND_SECONDS);
-    } catch (e) {
-      setError(authErrorMessage(e, "request"));
-    } finally {
-      setBusy(false);
-    }
-  }, [phone]);
+  const sendOtpRequest = useMemo(
+    () =>
+      createOtpRequest({
+        send: (value) => authClient.requestOtp(value, APP_ROLE),
+        apply: (patch: OtpRequestPatch) => {
+          if (patch.busy !== undefined) setBusy(patch.busy);
+          if (patch.error !== undefined) setError(patch.error);
+          if (patch.notice !== undefined) setNotice(patch.notice);
+          if (patch.otp !== undefined) setOtpValue(patch.otp);
+          if (patch.step !== undefined) setStep(patch.step);
+          if (patch.cooldown !== undefined) setCooldown(patch.cooldown);
+        },
+        cooldownSeconds: OTP_RESEND_SECONDS
+      }),
+    []
+  );
+
+  const requestOtp = useCallback(
+    () => sendOtpRequest(phone),
+    [sendOtpRequest, phone]
+  );
 
   const verify = useCallback(
     async (code: string) => {
