@@ -125,7 +125,8 @@ export function todayHours(
   now: Date = new Date()
 ): string {
   if (hours === null) return "Không giới hạn giờ";
-  const index = (now.getDay() + 6) % 7;
-  const day = hours[index];
+  // Stores keep Vietnam time (UTC+7, no daylight saving), like the API.
+  const vietnam = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  const day = hours[(vietnam.getUTCDay() + 6) % 7];
   return day ? `Hôm nay ${formatWindow(day)}` : "Hôm nay nghỉ";
 }

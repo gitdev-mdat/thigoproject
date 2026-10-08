@@ -177,7 +177,11 @@ export function StoreScreen({
 
         <Card
           title="Giờ mở cửa"
-          subtitle={`${summarizeHours(store.openingHours)} · ${todayHours(store.openingHours)}`}
+          subtitle={
+            store.openingHours
+              ? `${summarizeHours(store.openingHours)} · ${todayHours(store.openingHours)}`
+              : summarizeHours(store.openingHours)
+          }
           action={
             <Button label="Sửa" variant="tertiary" onPress={nav.openHours} />
           }
