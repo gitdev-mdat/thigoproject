@@ -19,7 +19,11 @@ import { MenuItemRow } from "../../components/store/MenuItemRow";
 import { useStoreMenu } from "../../hooks/useStoreMenu";
 import { useCart } from "../../stores/cart";
 import type { Product, StoreDetail } from "../../types/catalog";
-import { categoryLabel } from "../../utils/storeLabels";
+import {
+  categoryLabel,
+  closedLabel,
+  todayHoursLabel
+} from "../../utils/storeLabels";
 
 type Props = {
   storeId: string;
@@ -131,9 +135,14 @@ export function StoreScreen({
           style={[styles.cover, { height: 196 + top }]}
         />
         <View style={styles.info}>
-          <Text style={styles.title} accessibilityRole="header">
-            {store.name}
-          </Text>
+          <View style={styles.titleRow}>
+            {store.logoImageUrl ? (
+              <RemoteImage url={store.logoImageUrl} style={styles.logo} />
+            ) : null}
+            <Text style={styles.title} accessibilityRole="header">
+              {store.name}
+            </Text>
+          </View>
           {store.description ? (
             <Text style={styles.description}>{store.description}</Text>
           ) : null}
@@ -148,12 +157,20 @@ export function StoreScreen({
             </Text>
           </View>
           <Text style={styles.meta}>
-            {categoryLabel[store.category]} · {store.productCount} món đang bán
+            {[
+              categoryLabel[store.category],
+              `${store.productCount} món đang bán`,
+              todayHoursLabel(store.openingHours)
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </Text>
           {!store.isOpen ? (
             <View style={styles.closed}>
               <Text style={styles.closedText}>
-                Quán tạm hết món, chưa nhận đơn lúc này.
+                {store.closedReason
+                  ? `${closedLabel[store.closedReason]}. Bạn vẫn xem được thực đơn, nhưng chưa đặt được lúc này.`
+                  : "Quán tạm hết món, chưa nhận đơn lúc này."}
               </Text>
             </View>
           ) : null}
@@ -242,7 +259,13 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radius.large,
     backgroundColor: colors.surface.primary
   },
-  title: { ...typography.role.screenTitle, color: colors.text.primary },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  logo: { width: 48, height: 48, borderRadius: radius.medium },
+  title: {
+    ...typography.role.screenTitle,
+    color: colors.text.primary,
+    flexShrink: 1
+  },
   description: { ...typography.role.body, color: colors.text.secondary },
   metaRow: {
     flexDirection: "row",

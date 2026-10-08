@@ -1,6 +1,11 @@
 /** Contracts of the THIGO API used by the Customer app. Money is integer VND. */
 export type StoreCategory = "FOOD" | "COFFEE" | "MILK_TEA";
 
+export type StoreClosedReason = "UNPUBLISHED" | "PAUSED" | "OUTSIDE_HOURS";
+
+/** Monday-first weekly hours in Vietnam time; null for a closed day. */
+export type OpeningHours = ({ open: string; close: string } | null)[];
+
 export type StoreSummary = {
   id: string;
   name: string;
@@ -8,7 +13,11 @@ export type StoreSummary = {
   description: string | null;
   addressLine: string;
   coverImageUrl: string | null;
+  logoImageUrl: string | null;
   productCount: number;
+  /** Whether the store takes orders right now; decided by the server. */
+  isOpen: boolean;
+  closedReason: StoreClosedReason | null;
 };
 
 export type DishSummary = {
@@ -47,7 +56,8 @@ export type Product = {
 };
 
 export type StoreDetail = StoreSummary & {
-  isOpen: boolean;
+  phone: string | null;
+  openingHours: OpeningHours | null;
   categories: { id: string; name: string; products: Product[] }[];
 };
 
