@@ -3,6 +3,8 @@ import type { ReadStream } from "node:fs";
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
   PayloadTooLargeException,
@@ -18,8 +20,11 @@ import { StorefrontRepository } from "../../repositories/merchant/storefront.rep
 import { MAX_IMAGE_BYTES, detectImageType } from "./image-validation.js";
 
 export const MEDIA_URL_PREFIX = "/media/";
-/** Uploads are never garbage-collected yet, so cap what one store can keep. */
+/** Uploads that were never attached are not swept yet, so cap what one store keeps. */
 export const MAX_IMAGES_PER_STORE = 300;
+/** Uploads per merchant per minute; enough for a burst of edits, not a flood. */
+export const MAX_UPLOADS_PER_MINUTE = 20;
+const MINUTE_MS = 60_000;
 
 export function mediaUrl(id: string): string {
   return `${MEDIA_URL_PREFIX}${id}`;
@@ -32,6 +37,9 @@ export interface UploadedFile {
 
 @Injectable()
 export class MediaService {
+  /** In-memory, so it covers the approved single-instance deployment only. */
+  private readonly recentUploads = new Map<string, number[]>();
+
   constructor(
     private readonly media: MediaRepository,
     private readonly files: MediaFileStore,
@@ -46,6 +54,7 @@ export class MediaService {
     const store = await this.storefront.findStoreByOwner(user.id);
     if (!store)
       throw new BadRequestException("Hãy tạo cửa hàng trước khi tải ảnh lên.");
+    this.throttle(user.id);
     if (!file || !file.buffer?.length)
       throw new BadRequestException("Chưa có ảnh nào được gửi lên.");
     if (file.size > MAX_IMAGE_BYTES)
@@ -78,6 +87,41 @@ export class MediaService {
       contentType,
       byteSize: asset.byteSize
     };
+  }
+
+  /**
+   * Deletes images an edit or delete just detached, unless something else
+   * (another product, the other store image, a past order) still shows them.
+   * Best effort: a failure leaves an orphan, never a broken image.
+   */
+  async releaseUnused(urls: (string | null | undefined)[]): Promise<void> {
+    for (const url of new Set(urls)) {
+      const id = url?.startsWith(MEDIA_URL_PREFIX)
+        ? url.slice(MEDIA_URL_PREFIX.length)
+        : null;
+      if (!id || !isUuid(id)) continue;
+      try {
+        if (await this.media.isReferenced(url!)) continue;
+        await this.media.remove(id);
+        await this.files.remove(id);
+      } catch {
+        // Leave it; the per-store cap bounds what an orphan can cost.
+      }
+    }
+  }
+
+  private throttle(userId: string, now = Date.now()): void {
+    const recent = (this.recentUploads.get(userId) ?? []).filter(
+      (at) => now - at < MINUTE_MS
+    );
+    if (recent.length >= MAX_UPLOADS_PER_MINUTE)
+      throw new HttpException(
+        "Bạn đang tải ảnh quá nhanh. Vui lòng thử lại sau ít phút.",
+        HttpStatus.TOO_MANY_REQUESTS
+      );
+    recent.push(now);
+    this.recentUploads.set(userId, recent);
+    if (this.recentUploads.size > 10_000) this.recentUploads.clear();
   }
 
   /** The URL for one of this store's uploads, or 400 when it is not theirs. */

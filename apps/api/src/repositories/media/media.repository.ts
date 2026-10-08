@@ -27,6 +27,17 @@ export class MediaRepository {
     return this.db.getRepository(MediaAsset).count({ where: { storeId } });
   }
 
+  /** Whether any store, product (archived included) or order line still shows this URL. */
+  async isReferenced(url: string): Promise<boolean> {
+    const rows = (await this.db.query(
+      `SELECT EXISTS (SELECT 1 FROM stores WHERE logo_image_url = $1 OR cover_image_url = $1)
+           OR EXISTS (SELECT 1 FROM products WHERE image_url = $1)
+           OR EXISTS (SELECT 1 FROM order_items WHERE image_url = $1) AS used`,
+      [url]
+    )) as { used: boolean }[];
+    return rows[0]?.used ?? true;
+  }
+
   async remove(id: string): Promise<void> {
     await this.db.getRepository(MediaAsset).delete({ id });
   }

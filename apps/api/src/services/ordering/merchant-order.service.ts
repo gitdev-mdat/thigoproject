@@ -10,6 +10,7 @@ import {
 } from "../../dto/ordering/ordering.dto.js";
 import type { Store } from "../../entities/catalog/store.entity.js";
 import { OrderStatus } from "../../entities/ordering/order.entity.js";
+import { storeClosedReason } from "../../common/catalog/store-availability.js";
 import { CatalogRepository } from "../../repositories/catalog/catalog.repository.js";
 import { OrderRepository } from "../../repositories/ordering/order.repository.js";
 import { toMerchantOrder } from "./order-mapper.js";
@@ -64,7 +65,8 @@ export class MerchantOrderService {
         id: store.id,
         name: store.name,
         addressLine: store.addressLine,
-        isActive: store.isActive
+        isActive: store.isActive,
+        closedReason: storeClosedReason(store)
       },
       active: active.map(toMerchantOrder),
       recent: done.map(toMerchantOrder)
