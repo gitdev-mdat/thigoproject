@@ -81,12 +81,13 @@ pnpm dev:api
 The seed is idempotent and is never run by API startup or migrations. Sign in
 with the matching development account:
 
-| App      | Phone      | Notes                       |
-| -------- | ---------- | --------------------------- |
-| Customer | 0860000001 | addresses and order history |
-| Merchant | 0860000002 | owns Cơm Tấm Sài Gòn        |
-| Driver   | 0860000003 | second driver: 0860000201   |
-| Admin    | 0860000004 |                             |
+| App      | Phone      | Notes                         |
+| -------- | ---------- | ----------------------------- |
+| Customer | 0860000001 | addresses and order history   |
+| Merchant | 0860000002 | owns Cơm Tấm Sài Gòn          |
+| Driver   | 0860000003 | second driver: 0860000201     |
+| Merchant | 0860000005 | no store yet: first-run setup |
+| Admin    | 0860000004 |                               |
 
 Android testing on a local emulator is described in
 [docs/ANDROID_TESTING.md](./docs/ANDROID_TESTING.md).
