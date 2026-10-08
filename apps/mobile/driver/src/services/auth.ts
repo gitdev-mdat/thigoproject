@@ -1,26 +1,18 @@
 import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
 import {
   AuthError,
   createAuthClient,
   type ApplicationRole
 } from "@thigo/auth-client";
+import { apiBaseUrl } from "./config";
 
 export const APP_ROLE: ApplicationRole = "DRIVER";
 /** Matches the API default `OTP_RESEND_SECONDS`. */
 export const OTP_RESEND_SECONDS = 60;
 
 const sessionKey = "thigo.driver.session";
-const env = (
-  globalThis as { process?: { env?: { EXPO_PUBLIC_API_URL?: string } } }
-).process?.env;
-
 export const authClient = createAuthClient({
-  baseUrl:
-    env?.EXPO_PUBLIC_API_URL ??
-    (Platform.OS === "android"
-      ? "http://10.0.2.2:3001"
-      : "http://localhost:3001"),
+  baseUrl: apiBaseUrl,
   mode: "bearer"
 });
 

@@ -1,96 +1,219 @@
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, radius, spacing, typography } from "@thigo/design-tokens";
 
-import { BrandMark } from "../components/BrandMark";
 import { Button } from "../components/Button";
-import { Chip } from "../components/Chip";
+import { Notice } from "../components/Notice";
+import { Placeholder } from "../components/Placeholder";
+import { AccountRow } from "../components/delivery/AccountRow";
+import { ActionBar } from "../components/delivery/ActionBar";
+import { AvailableCard } from "../components/delivery/AvailableCard";
+import { CurrentDelivery } from "../components/delivery/CurrentDelivery";
+import { DeliveredState } from "../components/delivery/DeliveredState";
+import { DeliveryHeader } from "../components/delivery/DeliveryHeader";
+import { HistoryList } from "../components/delivery/HistoryList";
 import type { AuthSession } from "../hooks/useAuthSession";
-import { androidTopInset } from "../utils/layout";
-import { maskPhone } from "../utils/phone";
+import { useDeliveries } from "../hooks/useDeliveries";
+import {
+  deliverConfirmation,
+  deliveryStage,
+  formatClock
+} from "../utils/delivery";
 
 type Props = { session: AuthSession };
 
+/** Driver home: the current job when there is one, otherwise jobs to claim. */
 export function HomeScreen({ session }: Props) {
-  return (
-    <SafeAreaView style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.header}>
-          <BrandMark role="Tài xế" />
-        </View>
+  const { bottom } = useSafeAreaInsets();
+  const deliveries = useDeliveries();
+  const { overview, pending, delivered } = deliveries;
+  const current = overview?.current ?? null;
+  const stage = current ? deliveryStage(current.status) : null;
+  const job = current && stage && !delivered ? { current, stage } : null;
+  const updated = deliveries.updatedAt
+    ? formatClock(deliveries.updatedAt)
+    : null;
+  const headerStatus = !updated
+    ? "Đang tải…"
+    : deliveries.stale
+      ? `Mất kết nối · ${updated}`
+      : `Cập nhật lúc ${updated}`;
 
-        <View style={styles.status} accessible>
-          <Chip label="Chưa có chuyến" />
-          <Text style={styles.title} accessibilityRole="header">
-            Hiện chưa có đơn giao
-          </Text>
-          <Text style={styles.body}>
-            THIGO chưa mở giao hàng. Khi có chuyến dành cho bạn, chuyến sẽ hiện
-            ngay tại đây.
-          </Text>
-        </View>
+  const runStageAction = () => {
+    if (!job) return;
+    const {
+      current: delivery,
+      stage: { action }
+    } = job;
+    if (action.kind === "pickup") deliveries.pickup(delivery.id);
+    if (action.kind === "deliver") {
+      const copy = deliverConfirmation(delivery);
+      Alert.alert(copy.title, copy.message, [
+        { text: "Chưa giao", style: "cancel" },
+        { text: copy.confirm, onPress: () => deliveries.deliver(delivery.id) }
+      ]);
+    }
+  };
 
-        <View style={styles.account}>
-          <View style={styles.accountText}>
-            <Text style={styles.caption}>Tài khoản Tài xế</Text>
-            <Text style={styles.phone}>
-              {session.user ? maskPhone(session.user.phone) : ""}
+  const logout = () => {
+    if (!current) return void session.logout();
+    Alert.alert(
+      "Đăng xuất khi đang có đơn?",
+      `Đơn ${current.code} vẫn được giữ cho bạn. Đăng nhập lại để tiếp tục giao.`,
+      [
+        { text: "Ở lại", style: "cancel" },
+        { text: "Đăng xuất", onPress: () => void session.logout() }
+      ]
+    );
+  };
+
+  const body = () => {
+    if (delivered)
+      return (
+        <DeliveredState
+          delivery={delivered}
+          onDone={deliveries.dismissDelivered}
+        />
+      );
+    if (!overview) {
+      if (deliveries.status === "error")
+        return (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle} accessibilityRole="header">
+              Chưa tải được đơn giao
             </Text>
+            <Text style={styles.body}>{deliveries.error}</Text>
+            <Button label="Thử lại" prominent onPress={deliveries.reload} />
           </View>
-          <Button
-            label="Đăng xuất"
-            loadingLabel="Đang đăng xuất…"
-            variant="secondary"
-            loading={session.busy}
-            onPress={() => void session.logout()}
+        );
+      return (
+        <View
+          style={styles.loading}
+          accessible
+          accessibilityLabel="Đang tải đơn giao"
+        >
+          {[0, 1].map((key) => (
+            <View key={key} style={styles.card}>
+              <Placeholder width="40%" height={20} rounded="small" />
+              <Placeholder height={48} />
+              <Placeholder height={56} />
+            </View>
+          ))}
+        </View>
+      );
+    }
+    if (job)
+      return <CurrentDelivery delivery={job.current} stage={job.stage} />;
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          {overview.available.length
+            ? `Đơn cần giao (${overview.available.length})`
+            : "Đơn cần giao"}
+        </Text>
+        {overview.available.length ? (
+          overview.available.map((delivery) => (
+            <AvailableCard
+              key={delivery.id}
+              delivery={delivery}
+              loading={pending?.id === delivery.id}
+              disabled={pending !== undefined}
+              onClaim={() => deliveries.claim(delivery.id)}
+            />
+          ))
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>
+              Chưa có đơn cần giao. Đơn mới sẽ tự hiện ở đây.
+            </Text>
+            {updated ? (
+              <Text style={styles.caption}>Cập nhật lúc {updated}</Text>
+            ) : null}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style="light" />
+      <DeliveryHeader status={headerStatus} />
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: job ? spacing.lg : bottom + spacing.xl }
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={deliveries.refreshing}
+            onRefresh={deliveries.refresh}
+            colors={[colors.brand.primary]}
+            tintColor={colors.brand.primary}
+          />
+        }
+      >
+        {deliveries.notice ? (
+          <Notice message={deliveries.notice} tone="warning" />
+        ) : null}
+        {body()}
+        {overview && !job && !delivered ? (
+          <HistoryList deliveries={overview.history} />
+        ) : null}
+        <View style={styles.account}>
+          <AccountRow
+            phone={session.user?.phone}
+            busy={session.busy}
+            onLogout={logout}
           />
         </View>
       </ScrollView>
-    </SafeAreaView>
+      {job ? (
+        <ActionBar
+          action={job.stage.action}
+          loading={pending?.id === job.current.id}
+          onPress={runStageAction}
+        />
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface.secondary },
+  flex: { flex: 1 },
   scroll: {
     flexGrow: 1,
-    paddingTop: androidTopInset + spacing.xs,
+    paddingTop: spacing.md,
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xl,
     gap: spacing.md
   },
-  header: {
-    minHeight: spacing.xxl,
-    flexDirection: "row",
-    alignItems: "center"
-  },
-  status: {
-    padding: spacing.lg,
+  section: { gap: spacing.sm },
+  sectionTitle: { ...typography.role.sectionTitle, color: colors.text.primary },
+  loading: { gap: spacing.sm },
+  card: {
     gap: spacing.sm,
+    padding: spacing.md,
     borderRadius: radius.large,
     borderWidth: 1,
     borderColor: colors.border.subtle,
     backgroundColor: colors.surface.primary
   },
-  title: { ...typography.role.screenTitle, color: colors.text.primary },
+  cardTitle: { ...typography.role.itemTitle, color: colors.text.primary },
   body: { ...typography.role.body, color: colors.text.secondary },
-  account: {
-    marginTop: "auto",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radius.medium,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    backgroundColor: colors.surface.primary
-  },
-  accountText: { flex: 1, gap: spacing.xxs },
-  caption: { ...typography.role.caption, color: colors.text.secondary },
-  phone: {
-    ...typography.role.itemTitle,
-    color: colors.text.primary,
+  caption: {
+    ...typography.role.caption,
+    color: colors.text.secondary,
     fontVariant: ["tabular-nums"]
-  }
+  },
+  account: { marginTop: "auto", paddingTop: spacing.lg }
 });

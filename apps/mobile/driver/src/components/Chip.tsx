@@ -11,6 +11,14 @@ const tones = {
   warning: {
     background: colors.status.warningBackground,
     text: colors.status.warning
+  },
+  success: {
+    background: colors.status.successBackground,
+    text: colors.status.success
+  },
+  danger: {
+    background: colors.status.dangerBackground,
+    text: colors.status.danger
   }
 } as const;
 
