@@ -41,7 +41,7 @@ pnpm dev:api       # NestJS on http://0.0.0.0:3001
 
 ## 4. Check emulator-to-API connectivity
 
-The apps call `http://10.0.2.2:3001` on Android by default (`src/services/auth.ts`). `10.0.2.2` is the emulator's alias for the Windows host.
+The apps call `http://10.0.2.2:3001` on Android by default (`src/services/auth.ts` in Customer, `src/services/config.ts` in Merchant and Driver; `EXPO_PUBLIC_API_URL` overrides it). `10.0.2.2` is the emulator's alias for the Windows host.
 
 ```powershell
 adb shell "curl -s -o /dev/null -w '%{http_code}' http://10.0.2.2:3001/customer/recommendations"

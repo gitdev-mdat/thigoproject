@@ -18,9 +18,11 @@ const developmentMediaRoot = fileURLToPath(
 async function bootstrap(): Promise<void> {
   const environment = readApiEnvironment(process.env);
   const authEnvironment = readAuthEnvironment(process.env);
+  // Decided before any database connection so a refused production start opens nothing.
+  const servesDemoMedia = developmentFixturesEnabled(process.env);
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   // Seeded demo images are served only when development fixtures are opted in.
-  if (developmentFixturesEnabled(process.env))
+  if (servesDemoMedia)
     app.useStaticAssets(developmentMediaRoot, {
       prefix: `${DEVELOPMENT_MEDIA_PREFIX}/`,
       maxAge: "1d"

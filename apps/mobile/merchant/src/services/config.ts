@@ -4,7 +4,7 @@ const env = (
   globalThis as { process?: { env?: { EXPO_PUBLIC_API_URL?: string } } }
 ).process?.env;
 
-/** Base URL of the THIGO API; resolved the same way as the auth client's. */
+/** API origin shared by the auth client and the order endpoints. */
 export const apiBaseUrl =
   env?.EXPO_PUBLIC_API_URL ??
   (Platform.OS === "android"
