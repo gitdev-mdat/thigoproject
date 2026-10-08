@@ -70,7 +70,7 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
   - [ ] Implement only the approved merchant, catalog, browsing, bounded visibility, and shell-polish scope
   - [ ] Verify participating mobile, admin, API, persistence, authorization, and failure-state behavior
   - [ ] Record completion evidence and promote F03
-- **Notes:** This approved feature combines merchant storefront setup and catalog/availability in F02; catalog is not a separate F03. F02 remains `READY` until the implementation Flow begins, at which point that Flow may move it to `IN_PROGRESS`. Geographic location, service-area logic, cart, checkout, orders, and delivery remain outside F02. The P0 entry-experience slice (Customer, Merchant, and Driver login, OTP, and authenticated shells) is implemented; it was checked in a browser render against the real NestJS/PostgreSQL auth stack, and Android Emulator verification is still outstanding. Storefront, catalog, and Admin visibility are not started.
+- **Notes:** This approved feature combines merchant storefront setup and catalog/availability in F02; catalog is not a separate F03. F02 remains `READY` until the implementation Flow begins, at which point that Flow may move it to `IN_PROGRESS`. Geographic location, service-area logic, cart, checkout, orders, and delivery remain outside F02. The P0 entry-experience slice (Customer, Merchant, and Driver login, OTP, and authenticated shells) is implemented; it was checked in a browser render against the real NestJS/PostgreSQL auth stack, and Android Emulator verification is still outstanding. Storefront, catalog, and Admin visibility are not started. Owner-requested end-to-end ordering slice (2026-10-08): customer browsing of a real catalog (stores, categories, menu, options, search) now reads the NestJS API backed by PostgreSQL tables and development-only seeds; merchant catalog management, storefront setup, and Admin visibility are still not built.
 
 ## F03 — Location & Service Area
 
@@ -98,7 +98,7 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
   - [ ] Implement the approved discovery, cart, and checkout scope
   - [ ] Verify eligibility, totals, failure recovery, and accessibility
   - [ ] Record completion evidence and promote F05
-- **Notes:** Ranking, search, promotions, fees, payment methods, and provider choices are not selected by this roadmap.
+- **Notes:** Ranking, search, promotions, fees, payment methods, and provider choices are not selected by this roadmap. An owner-requested slice built ahead of sequence (2026-10-08) provides a single-store cart, saved addresses, COD-only checkout with server-side pricing, a flat 15.000 ₫ delivery fee and idempotent order placement; it was verified against the real API and PostgreSQL in a browser render only. Status stays `PLANNED` until F03 and a `TASK.md` confirm or replace those choices.
 
 ## F05 — Order Operations
 
@@ -112,7 +112,7 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
   - [ ] Implement the approved order operations and exception scope
   - [ ] Verify state transitions and each role's next action
   - [ ] Record completion evidence and promote F06
-- **Notes:** Order states, acceptance, preparation, cancellation, support actions, and service guarantees belong in the active task. Driver assignment and delivery execution remain F06.
+- **Notes:** Order states, acceptance, preparation, cancellation, support actions, and service guarantees belong in the active task. Driver assignment and delivery execution remain F06. The 2026-10-08 slice adds customer tracking/history/cancel-while-pending and a merchant order board (accept, reject with reason, preparing, ready) with ownership checks and conditional status transitions; Admin order operations are not built.
 
 ## F06 — Driver & Delivery
 
@@ -126,7 +126,7 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
   - [ ] Implement the approved driver and delivery scope
   - [ ] Verify assignment and delivery transitions, authorization, recovery, and operational readability
   - [ ] Record completion evidence and promote F07
-- **Notes:** Matching, dispatch, driver eligibility, schedules, route behavior, proof of delivery, and exception policy remain active-task decisions.
+- **Notes:** Matching, dispatch, driver eligibility, schedules, route behavior, proof of delivery, and exception policy remain active-task decisions. The 2026-10-08 slice adds a basic driver flow (self-claim from an open list with one active job per driver and a race-safe claim, pickup only when food is ready, delivery confirmation); there is no GPS, dispatch or proof of delivery, and Android Emulator verification is outstanding.
 
 ## F07 — Realtime & Notifications
 
