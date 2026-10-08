@@ -32,17 +32,18 @@ describe("development auth fixtures", () => {
     ).not.toThrow();
   });
 
-  it("ensures the four deterministic canonical accounts", async () => {
+  it("ensures the deterministic canonical accounts", async () => {
     const ensureAccount = vi.fn(async () => undefined);
 
     await seedDevelopmentAuthFixtures({ ensureAccount });
 
-    expect(DEVELOPMENT_AUTH_FIXTURES).toHaveLength(4);
+    expect(DEVELOPMENT_AUTH_FIXTURES).toHaveLength(5);
     expect(ensureAccount.mock.calls).toEqual([
       ["+84860000001", ApplicationRole.CUSTOMER],
       ["+84860000002", ApplicationRole.MERCHANT],
       ["+84860000003", ApplicationRole.DRIVER],
-      ["+84860000004", ApplicationRole.ADMIN]
+      ["+84860000004", ApplicationRole.ADMIN],
+      ["+84860000005", ApplicationRole.MERCHANT]
     ]);
   });
 });

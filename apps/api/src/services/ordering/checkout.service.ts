@@ -1,5 +1,9 @@
 import { randomInt } from "node:crypto";
 import {
+  storeClosedReason,
+  type StoreClosedReason
+} from "../../common/catalog/store-availability.js";
+import {
   BadRequestException,
   ConflictException,
   Injectable,
@@ -34,6 +38,12 @@ export function createOrderCode(): string {
   return code;
 }
 
+const CLOSED_MESSAGES: Record<StoreClosedReason, string> = {
+  UNPUBLISHED: "Quán hiện không nhận đơn.",
+  PAUSED: "Quán đang tạm ngưng nhận đơn. Vui lòng quay lại sau.",
+  OUTSIDE_HOURS: "Quán đang ngoài giờ mở cửa."
+};
+
 @Injectable()
 export class CheckoutService {
   constructor(
@@ -45,8 +55,9 @@ export class CheckoutService {
   /** Prices a cart from the database; any change since browsing is a 409 the customer can act on. */
   async quote(cart: CartInput): Promise<QuoteDto> {
     const store = await this.catalog.findStore(cart.storeId);
-    if (!store || !store.isActive)
-      throw new ConflictException("Quán hiện không nhận đơn.");
+    const closed = store ? storeClosedReason(store) : "UNPUBLISHED";
+    if (!store || closed)
+      throw new ConflictException(CLOSED_MESSAGES[closed ?? "UNPUBLISHED"]);
     const products = new Map(
       (
         await this.catalog.findStoreProducts(store.id, [
@@ -56,7 +67,7 @@ export class CheckoutService {
     );
     const lines: QuoteLineDto[] = cart.items.map((item) => {
       const product = products.get(item.productId);
-      if (!product)
+      if (!product || product.archivedAt)
         throw new ConflictException(
           "Một món trong giỏ không còn trong thực đơn. Vui lòng xem lại giỏ hàng."
         );

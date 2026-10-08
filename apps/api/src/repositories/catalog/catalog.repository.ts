@@ -34,7 +34,9 @@ export class CatalogRepository {
             .select("COUNT(*)::int")
             .from(Product, "p")
             .innerJoin(MenuCategory, "c", "c.id = p.category_id")
-            .where("p.store_id = s.id AND p.is_available AND c.is_active"),
+            .where(
+              "p.store_id = s.id AND p.is_available AND p.archived_at IS NULL AND c.is_active"
+            ),
         "product_count"
       )
       .where("s.is_active = true")
@@ -61,7 +63,9 @@ export class CatalogRepository {
       .createQueryBuilder("p")
       .innerJoinAndSelect("p.store", "s")
       .innerJoin("p.category", "c")
-      .where("p.is_available AND c.is_active AND s.is_active")
+      .where(
+        "p.is_available AND p.archived_at IS NULL AND c.is_active AND s.is_active"
+      )
       .orderBy("c.position", "ASC")
       .addOrderBy("p.position", "ASC")
       .addOrderBy("s.name", "ASC")

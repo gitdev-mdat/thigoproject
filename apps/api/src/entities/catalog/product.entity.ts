@@ -6,7 +6,6 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  Unique,
   UpdateDateColumn,
   type Relation
 } from "typeorm";
@@ -14,7 +13,6 @@ import { MenuCategory } from "./menu-category.entity.js";
 import { ProductOptionGroup } from "./product-option-group.entity.js";
 import { Store } from "./store.entity.js";
 @Entity("products")
-@Unique("UQ_products_store_name", ["storeId", "name"])
 export class Product {
   @PrimaryGeneratedColumn("uuid") id!: string;
   @Column({ name: "store_id", type: "uuid" }) storeId!: string;
@@ -28,6 +26,9 @@ export class Product {
   @Column({ name: "is_available", type: "boolean", default: true })
   isAvailable!: boolean;
   @Column({ type: "integer", default: 0 }) position!: number;
+  /** Set instead of deleting a product that past orders refer to. */
+  @Column({ name: "archived_at", type: "timestamptz", nullable: true })
+  archivedAt!: Date | null;
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;
   @UpdateDateColumn({ name: "updated_at", type: "timestamptz" })

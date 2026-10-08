@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { storeClosedReason } from "../../common/catalog/store-availability.js";
 import { foldVietnamese } from "../../common/text/vietnamese-fold.js";
 import type {
   DishSummaryDto,
@@ -71,6 +72,10 @@ export class CustomerCatalogService {
       : null;
     if (!store) throw new NotFoundException("Không tìm thấy cửa hàng.");
     const categories = store.categories
+      .map((category) => ({
+        ...category,
+        products: category.products.filter((product) => !product.archivedAt)
+      }))
       .filter((category) => category.isActive && category.products.length > 0)
       .map((category) => ({
         id: category.id,
@@ -80,15 +85,19 @@ export class CustomerCatalogService {
     const productCount = categories
       .flatMap((category) => category.products)
       .filter((product) => product.isAvailable).length;
+    const summary = toSummary({ store, productCount });
     return {
-      ...toSummary({ store, productCount }),
-      isOpen: productCount > 0,
+      ...summary,
+      isOpen: summary.isOpen && productCount > 0,
+      phone: store.phone,
+      openingHours: store.openingHours,
       categories
     };
   }
 }
 
 function toSummary({ store, productCount }: StoreWithCount): StoreSummaryDto {
+  const closedReason = storeClosedReason(store);
   return {
     id: store.id,
     name: store.name,
@@ -96,7 +105,10 @@ function toSummary({ store, productCount }: StoreWithCount): StoreSummaryDto {
     description: store.description,
     addressLine: store.addressLine,
     coverImageUrl: store.coverImageUrl,
-    productCount
+    logoImageUrl: store.logoImageUrl,
+    productCount,
+    isOpen: closedReason === null,
+    closedReason
   };
 }
 

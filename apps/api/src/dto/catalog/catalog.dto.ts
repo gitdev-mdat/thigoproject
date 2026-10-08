@@ -1,4 +1,8 @@
-import { StoreCategory } from "../../entities/catalog/store.entity.js";
+import type { StoreClosedReason } from "../../common/catalog/store-availability.js";
+import {
+  StoreCategory,
+  type OpeningHours
+} from "../../entities/catalog/store.entity.js";
 
 export interface StoreSummaryDto {
   id: string;
@@ -7,7 +11,11 @@ export interface StoreSummaryDto {
   description: string | null;
   addressLine: string;
   coverImageUrl: string | null;
+  logoImageUrl: string | null;
   productCount: number;
+  /** Whether the store takes orders right now (published, not paused, within hours). */
+  isOpen: boolean;
+  closedReason: StoreClosedReason | null;
 }
 
 export interface DishSummaryDto {
@@ -46,7 +54,8 @@ export interface ProductDto {
 }
 
 export interface StoreDetailDto extends StoreSummaryDto {
-  isOpen: boolean;
+  phone: string | null;
+  openingHours: OpeningHours | null;
   categories: { id: string; name: string; products: ProductDto[] }[];
 }
 

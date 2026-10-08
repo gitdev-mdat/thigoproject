@@ -57,7 +57,13 @@ function setup(options: { store?: object | null; products?: object[] } = {}) {
   const catalog = {
     findStore: vi.fn(async () =>
       options.store === undefined
-        ? { id: STORE, name: "Mây", isActive: true }
+        ? {
+            id: STORE,
+            name: "Mây",
+            isActive: true,
+            isAcceptingOrders: true,
+            openingHours: null
+          }
         : options.store
     ),
     findStoreProducts: vi.fn(async () => options.products ?? [product()])
@@ -119,6 +125,38 @@ describe("CheckoutService.quote", () => {
     await expect(
       setup({ products: [] }).service.quote(cart([SIZE_M]))
     ).rejects.toThrow("không còn trong thực đơn");
+    await expect(
+      setup({ products: [product({ archivedAt: new Date() })] }).service.quote(
+        cart([SIZE_M])
+      )
+    ).rejects.toThrow("không còn trong thực đơn");
+  });
+
+  it("rejects a paused store and one outside its opening hours", async () => {
+    const open = { id: STORE, name: "x", isActive: true, openingHours: null };
+    await expect(
+      setup({ store: { ...open, isAcceptingOrders: false } }).service.quote(
+        cart([SIZE_M])
+      )
+    ).rejects.toThrow("tạm ngưng nhận đơn");
+    const closedEveryDay = [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      { open: "00:00", close: "00:01" }
+    ];
+    await expect(
+      setup({
+        store: {
+          ...open,
+          isAcceptingOrders: true,
+          openingHours: closedEveryDay
+        }
+      }).service.quote(cart([SIZE_M]))
+    ).rejects.toThrow(ConflictException);
   });
 });
 

@@ -6,7 +6,9 @@ export const DEVELOPMENT_AUTH_FIXTURES = [
   { phone: "0860000001", role: ApplicationRole.CUSTOMER },
   { phone: "0860000002", role: ApplicationRole.MERCHANT },
   { phone: "0860000003", role: ApplicationRole.DRIVER },
-  { phone: "0860000004", role: ApplicationRole.ADMIN }
+  { phone: "0860000004", role: ApplicationRole.ADMIN },
+  // A merchant with no storefront, for walking through onboarding.
+  { phone: "0860000005", role: ApplicationRole.MERCHANT }
 ] as const;
 
 export interface DevelopmentAuthFixtureWriter {

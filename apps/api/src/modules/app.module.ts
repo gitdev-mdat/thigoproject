@@ -8,6 +8,7 @@ import { DatabaseHealthRepository } from "../repositories/health/database-health
 import { HealthService } from "../services/health/health.service.js";
 import { AuthModule } from "./auth.module.js";
 import { CatalogModule } from "./catalog.module.js";
+import { MerchantModule } from "./merchant.module.js";
 import { OrderingModule } from "./ordering.module.js";
 
 @Module({
@@ -15,6 +16,7 @@ import { OrderingModule } from "./ordering.module.js";
     AuthModule,
     CatalogModule,
     OrderingModule,
+    MerchantModule,
     TypeOrmModule.forRoot({
       ...createDatabaseOptions(readDatabaseEnvironment(process.env)),
       manualInitialization: true

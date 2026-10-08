@@ -93,7 +93,9 @@ export class DevelopmentCatalogFixtureRepository implements DevelopmentCatalogWr
         isAvailable: fixture.isAvailable ?? true,
         position
       },
-      ["store_id", "name"]
+      ["store_id", "name"],
+      // Matches the partial unique index on live (non-archived) products.
+      '"archived_at" IS NULL'
     );
   }
 
@@ -131,7 +133,8 @@ export class DevelopmentCatalogFixtureRepository implements DevelopmentCatalogWr
   private async upsert<T extends object>(
     entity: new () => T,
     values: Partial<T>,
-    conflict: string[]
+    conflict: string[],
+    indexPredicate?: string
   ): Promise<string> {
     const columns = this.manager
       .getRepository(entity)
@@ -146,7 +149,7 @@ export class DevelopmentCatalogFixtureRepository implements DevelopmentCatalogWr
       .insert()
       .into(entity)
       .values(values as never)
-      .orUpdate(columns, conflict)
+      .orUpdate(columns, conflict, indexPredicate ? { indexPredicate } : {})
       .returning("id")
       .execute();
     return (result.raw as { id: string }[])[0]!.id;
