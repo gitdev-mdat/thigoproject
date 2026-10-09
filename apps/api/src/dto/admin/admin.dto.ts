@@ -1,6 +1,7 @@
 import { BadRequestException } from "@nestjs/common";
 import { ApplicationRole } from "../../entities/auth/user-role.entity.js";
 import { StoreCategory } from "../../entities/catalog/store.entity.js";
+import { MerchantApplicationStatus } from "../../entities/merchant/merchant-application.entity.js";
 import { OrderStatus } from "../../entities/ordering/order.entity.js";
 
 export const ADMIN_DEFAULT_PAGE_SIZE = 20;
@@ -202,6 +203,7 @@ export interface AdminOverview {
     previous7Days: { orders: number; valueVnd: number };
   };
   drivers: { total: number; onDelivery: number; idle: number };
+  partners: { pendingReview: number };
   daily: { date: string; placed: number; delivered: number }[];
   recentOrders: AdminOrderRow[];
   topStores: {
@@ -211,4 +213,19 @@ export interface AdminOverview {
     deliveredOrders: number;
     deliveredValueVnd: number;
   }[];
+}
+
+export interface ApplicationListQuery extends PageQuery {
+  status?: MerchantApplicationStatus | undefined;
+  q?: string | undefined;
+}
+
+export function parseApplicationListQuery(
+  query: Record<string, unknown>
+): ApplicationListQuery {
+  return {
+    ...parsePage(query),
+    status: oneOf(query.status, Object.values(MerchantApplicationStatus)),
+    q: search(query.q)
+  };
 }

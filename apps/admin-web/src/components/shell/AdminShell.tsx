@@ -12,6 +12,7 @@ import { Icon, type IconName } from "../ui";
 const NAVIGATION: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Tổng quan", icon: "overview" },
   { href: "/stores", label: "Cửa hàng", icon: "stores" },
+  { href: "/partners", label: "Đối tác", icon: "partners" },
   { href: "/orders", label: "Đơn hàng", icon: "orders" },
   { href: "/users", label: "Người dùng", icon: "users" },
   { href: "/drivers", label: "Tài xế", icon: "drivers" },

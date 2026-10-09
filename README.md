@@ -125,15 +125,16 @@ read the ADMIN-only `/admin/overview`, `/admin/stores`, `/admin/orders`,
 `/admin/users` and `/admin/drivers` endpoints; changes such as hiding a store
 or locking an account are not offered yet.
 
-### Merchant accounts and storefront onboarding
+### Becoming a merchant
 
-These are two separate steps. **Account provisioning** decides who may sign in
-to the Merchant app; it follows the F01 identity model (merchant roles are
-granted, never self-registered), and locally the seeded accounts above cover
-it. **Storefront onboarding** is what a signed-in merchant does next: create
-the store, add categories and products, and publish. A store can be published
-once it has a valid phone, a valid address and at least one available product
-in a visible category; no Admin approval is involved.
+There are two ways in, and both end with an Admin decision:
+
+- **Self-service:** the owner signs in to the Merchant app with their phone and OTP. A phone without the Merchant role opens the partner application ("Đăng ký trở thành đối tác"): store name, type, address, store phone, a short description and a contact name. The owner can save a draft, submit, see the status, and edit and resubmit when THIGO asks for changes.
+- **Admin-assisted:** in the Admin web, **Đối tác → Thêm đối tác** records the owner's phone and store details as an approved application. If that phone already has an account, it becomes a merchant at once; otherwise it becomes one only when that phone signs in to the Merchant app with OTP and taps "Kích hoạt tài khoản đối tác".
+
+Admins review applications under **Đối tác**: approve, request changes with a reason, or reject with a reason. Approval grants the Merchant role and creates the store, unpublished, in one transaction; repeated or concurrent approvals are refused. Every step is kept in the application history with who did it and when. Merchant accounts that already existed keep working without an application.
+
+After approval the owner finishes **storefront setup** in the Merchant app: logo and cover, categories and products, opening hours, then publish. A store can be published once it has a valid phone, a valid address and at least one available product in a visible category; publishing needs no Admin approval.
 
 Uploaded images are written to `MEDIA_STORAGE_DIR` (default
 `apps/api/storage/media` in development). Production must point it at a

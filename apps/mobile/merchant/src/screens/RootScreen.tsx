@@ -9,6 +9,7 @@ import { colors, spacing, typography } from "@thigo/design-tokens";
 
 import { Button } from "../components/Button";
 import { useAuthSession } from "../hooks/useAuthSession";
+import { ApplicantScreen } from "./apply/ApplicantScreen";
 import { LoginScreen } from "./LoginScreen";
 import { MerchantApp } from "./MerchantApp";
 
@@ -42,6 +43,8 @@ export function RootScreen() {
         </View>
       </SafeAreaView>
     );
+  if (session.step === "applicant")
+    return <ApplicantScreen session={session} />;
   if (session.step === "authenticated")
     return <MerchantApp session={session} />;
   return <LoginScreen session={session} />;

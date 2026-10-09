@@ -135,7 +135,10 @@ export function toLocalPhone(value: string | null): string {
 }
 
 export function profileDraft(
-  store: MerchantStoreProfile | null
+  store: Pick<
+    MerchantStoreProfile,
+    "name" | "category" | "addressLine" | "phone" | "description"
+  > | null
 ): StoreProfileDraft {
   return {
     name: store?.name ?? "",

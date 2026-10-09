@@ -100,6 +100,7 @@ export interface OverviewTotalsRecord {
   delivered_value_prev_7d: number;
   drivers: number;
   drivers_on_delivery: number;
+  pending_applications: number;
 }
 
 export interface DailyRecord {
@@ -156,7 +157,8 @@ export class AdminRepository {
          (SELECT COUNT(*) FROM orders WHERE status = 'DELIVERED' AND delivered_at >= now() - interval '14 days' AND delivered_at < now() - interval '7 days')::int AS delivered_prev_7d,
          (SELECT COALESCE(SUM(total_vnd), 0) FROM orders WHERE status = 'DELIVERED' AND delivered_at >= now() - interval '14 days' AND delivered_at < now() - interval '7 days')::bigint AS delivered_value_prev_7d,
          (SELECT COUNT(*) FROM user_roles WHERE role = 'DRIVER')::int AS drivers,
-         (SELECT COUNT(DISTINCT driver_user_id) FROM orders WHERE driver_user_id IS NOT NULL AND status = ANY($2))::int AS drivers_on_delivery`,
+         (SELECT COUNT(DISTINCT driver_user_id) FROM orders WHERE driver_user_id IS NOT NULL AND status = ANY($2))::int AS drivers_on_delivery,
+         (SELECT COUNT(*) FROM merchant_applications WHERE status = 'PENDING_REVIEW')::int AS pending_applications`,
       [ADMIN_ACTIVE_STATUSES, ADMIN_ACTIVE_STATUSES]
     )) as OverviewTotalsRecord[];
     return row!;

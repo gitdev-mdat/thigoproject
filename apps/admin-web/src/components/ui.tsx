@@ -2,8 +2,13 @@
 
 import type { ReactNode } from "react";
 
-import { ORDER_STATUS, formatCount, type Tone } from "./format";
-import type { OrderStatus } from "../types/admin";
+import {
+  APPLICATION_STATUS,
+  ORDER_STATUS,
+  formatCount,
+  type Tone
+} from "./format";
+import type { ApplicationStatus, OrderStatus } from "../types/admin";
 
 const ICONS = {
   overview: "M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z",
@@ -14,6 +19,10 @@ const ICONS = {
     "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-6 9a6 6 0 0 1 12 0M16 4a4 4 0 0 1 0 7m5 9a6 6 0 0 0-3-5",
   drivers:
     "M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0Zm10 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0ZM3 17V7h11v10M14 10h4l3 4v3h-2M9 17h6",
+  partners:
+    "M3 11l4-4 4 3 3-3 4 4M5 13l5 5c.6.6 1.4.6 2 0l1-1M9 15l2 2M12 12l3 3M19 11l-4 4M2 9l3 3M22 9l-3 3",
+  plus: "M12 5v14M5 12h14",
+  back: "m15 6-6 6 6 6",
   settings:
     "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-2-1.2L14.5 3h-5l-.4 2.6a7.4 7.4 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 2 1.2l.4 2.6h5l.4-2.6a7.4 7.4 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z",
   logout: "M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11",
@@ -50,6 +59,15 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
 
 export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
   return <span className={`badge badge-${tone}`}>{children}</span>;
+}
+
+export function ApplicationStatusBadge({
+  status
+}: {
+  status: ApplicationStatus;
+}) {
+  const meta = APPLICATION_STATUS[status];
+  return <Badge tone={meta.tone}>{meta.label}</Badge>;
 }
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {

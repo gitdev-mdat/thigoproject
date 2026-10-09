@@ -101,6 +101,7 @@ export interface AdminOverview {
     previous7Days: { orders: number; valueVnd: number };
   };
   drivers: { total: number; onDelivery: number; idle: number };
+  partners: { pendingReview: number };
   daily: { date: string; placed: number; delivered: number }[];
   recentOrders: AdminOrderRow[];
   topStores: {
@@ -110,4 +111,64 @@ export interface AdminOverview {
     deliveredOrders: number;
     deliveredValueVnd: number;
   }[];
+}
+
+export type ApplicationStatus =
+  "DRAFT" | "PENDING_REVIEW" | "CHANGES_REQUESTED" | "APPROVED" | "REJECTED";
+
+export interface MerchantApplication {
+  id: string;
+  code: string;
+  status: ApplicationStatus;
+  source: "SELF" | "ADMIN";
+  accountPhone: string;
+  storeName: string;
+  category: StoreCategory;
+  contactPhone: string;
+  addressLine: string;
+  description: string | null;
+  contactName: string;
+  reviewNote: string | null;
+  submittedAt: string | null;
+  decidedAt: string | null;
+  activatedAt: string | null;
+  storeId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApplicationPage extends Page<MerchantApplication> {
+  byStatus: Record<ApplicationStatus, number>;
+}
+
+export interface ApplicationEvent {
+  fromStatus: ApplicationStatus | null;
+  toStatus: ApplicationStatus;
+  action: string;
+  note: string | null;
+  actorKind: "applicant" | "admin";
+  actorPhone?: string;
+  createdAt: string;
+}
+
+export interface ApplicationDetail {
+  application: MerchantApplication;
+  applicant: {
+    userId: string | null;
+    hasAccount: boolean;
+    roles: Role[];
+    hasStore: boolean;
+  };
+  store: { id: string; name: string; isPublished: boolean } | null;
+  history: ApplicationEvent[];
+}
+
+export interface PartnerInput {
+  accountPhone: string;
+  contactName: string;
+  storeName: string;
+  category: StoreCategory;
+  contactPhone: string;
+  addressLine: string;
+  description?: string;
 }

@@ -1,4 +1,9 @@
 export type ApplicationRole = "CUSTOMER" | "MERCHANT" | "DRIVER" | "ADMIN";
+/**
+ * What a sign-in is for: an application role, or applying to become a
+ * merchant (a session that proves the phone and grants no role).
+ */
+export type SignInPurpose = ApplicationRole | "MERCHANT_APPLICANT";
 export type AuthUser = { id: string; phone: string; roles: ApplicationRole[] };
 /** A seeded development account offered by the DEV quick login. */
 export type QuickLoginAccount = { phone: string; label: string };
@@ -93,16 +98,12 @@ export function createAuthClient(options: Options) {
       clearTimeout(timer);
     }
   };
-  const requestOtp = (phone: string, application: ApplicationRole) =>
+  const requestOtp = (phone: string, application: SignInPurpose) =>
     request<{ accepted: true }>("/auth/otp/request", {
       method: "POST",
       body: JSON.stringify({ phone, application })
     });
-  const verifyOtp = (
-    phone: string,
-    otp: string,
-    application: ApplicationRole
-  ) =>
+  const verifyOtp = (phone: string, otp: string, application: SignInPurpose) =>
     request<{ token?: string; user: AuthUser }>("/auth/otp/verify", {
       method: "POST",
       body: JSON.stringify({ phone, otp, application })

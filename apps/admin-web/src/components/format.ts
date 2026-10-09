@@ -1,4 +1,9 @@
-import type { OrderStatus, Role, StoreCategory } from "../types/admin";
+import type {
+  ApplicationStatus,
+  OrderStatus,
+  Role,
+  StoreCategory
+} from "../types/admin";
 
 const TIMEZONE = "Asia/Ho_Chi_Minh";
 
@@ -53,7 +58,7 @@ export function formatRelative(iso: string | null, now = Date.now()): string {
 export function formatPhone(phone: string | null): string {
   if (!phone) return "—";
   const local = phone.startsWith("+84") ? `0${phone.slice(3)}` : phone;
-  return local.length === 10
+  return local.length === 10 || local.length === 11
     ? `${local.slice(0, 4)} ${local.slice(4, 7)} ${local.slice(7)}`
     : local;
 }
@@ -94,4 +99,25 @@ export const ROLE_LABEL: Record<Role, string> = {
   MERCHANT: "Chủ quán",
   DRIVER: "Tài xế",
   ADMIN: "Quản trị"
+};
+
+export const APPLICATION_STATUS: Record<
+  ApplicationStatus,
+  { label: string; tone: Tone }
+> = {
+  DRAFT: { label: "Nháp", tone: "neutral" },
+  PENDING_REVIEW: { label: "Chờ duyệt", tone: "warning" },
+  CHANGES_REQUESTED: { label: "Chờ bổ sung", tone: "info" },
+  APPROVED: { label: "Đã duyệt", tone: "success" },
+  REJECTED: { label: "Từ chối", tone: "danger" }
+};
+
+export const APPLICATION_EVENT: Record<string, string> = {
+  CREATE_DRAFT: "Chủ quán tạo hồ sơ",
+  SUBMIT: "Chủ quán gửi hồ sơ",
+  ADMIN_CREATE: "Quản trị thêm đối tác và duyệt",
+  APPROVE: "Quản trị duyệt hồ sơ",
+  REQUEST_CHANGES: "Quản trị yêu cầu bổ sung",
+  REJECT: "Quản trị từ chối hồ sơ",
+  ACTIVATE: "Cấp quyền chủ quán và tạo cửa hàng"
 };

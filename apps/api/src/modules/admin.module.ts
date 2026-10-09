@@ -4,9 +4,10 @@ import { RoleGuard } from "../guards/role.guard.js";
 import { AdminRepository } from "../repositories/admin/admin.repository.js";
 import { AdminService } from "../services/admin/admin.service.js";
 import { AuthModule } from "./auth.module.js";
+import { MerchantApplicationModule } from "./merchant-application.module.js";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, MerchantApplicationModule],
   controllers: [AdminController],
   providers: [RoleGuard, AdminRepository, AdminService]
 })

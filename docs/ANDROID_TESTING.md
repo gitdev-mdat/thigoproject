@@ -84,7 +84,7 @@ Sign in with OTP `000000`:
 | Merchant | 0860000002 |
 | Driver   | 0860000003 |
 
-For F02 storefront checks, also use merchant **0860000005**: it has the Merchant role but no store yet, so it opens the first-run setup. Merchant accounts are provisioned (seeded locally), never self-registered; the setup screen only creates the storefront.
+For F02 storefront checks, also use merchant **0860000005**: it has the Merchant role but no store yet, so it opens the first-run setup. Seeded merchant accounts need no application. A new owner gets the Merchant role only through an Admin-approved partner application (see the next section).
 
 The OTP resend cooldown is 60 seconds per phone number.
 
@@ -115,11 +115,25 @@ To confirm consistency in the database after step 11:
 docker compose exec postgres psql -U thigo -d thigo -c "select code,status,total_vnd,driver_user_id is not null as has_driver from orders order by placed_at desc limit 3"
 ```
 
-## 7. F02 Merchant storefront checklist
+## 7. Partner application checklist
+
+Use a phone that has never signed in, for example 0860300001, with OTP 000000. Keep the Admin web open at http://localhost:3000/partners.
+
+| #   | Check                                                                                                                                                        | Result |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| P1  | Merchant app: sign in with the new phone. "Trở thành đối tác THIGO" opens instead of the store; no merchant tab or order is reachable                        |        |
+| P2  | "Đăng ký trở thành đối tác": fill the form, "Lưu nháp", reopen it, then "Xem lại hồ sơ" → "Gửi hồ sơ". The status reads "Hồ sơ đang chờ duyệt"               |        |
+| P3  | Admin: the application is under "Chờ duyệt". "Yêu cầu bổ sung" with a reason. In the app, "Kiểm tra trạng thái" shows the reason; "Sửa và gửi lại" resubmits |        |
+| P4  | Admin: "Duyệt hồ sơ" → confirm. In the app, "Kiểm tra trạng thái" opens the store dashboard with the store unpublished                                       |        |
+| P5  | Finish F02 setup (categories, a product, publish) and confirm the Customer app finds the store                                                               |        |
+| P6  | Admin: "Thêm đối tác" for another new phone. Sign in with that phone: "Kích hoạt tài khoản đối tác" opens the new store                                      |        |
+| P7  | Reject a third application with a reason: the app shows the reason and "Nộp hồ sơ mới"; the phone still cannot reach the store                               |        |
+
+## 8. F02 Merchant storefront checklist
 
 Run this on the emulator with merchant **0860000005**. Before you start, put a few photos on the emulator: drag a JPEG or PNG onto the emulator window (it lands in Downloads), or run `adb push C:\path\dish.jpg /sdcard/Pictures/` and open the Photos/Files app once so it is indexed.
 
-0860000005 opens setup only until it has created a store. To repeat F1 later, provision another local merchant account (development database only; this is what account provisioning does, not self-registration):
+0860000005 opens setup only until it has created a store. To repeat F1 later, approve a partner application for a new phone (see the next section), or provision another local merchant account directly (development database only):
 
 ```powershell
 docker compose exec postgres psql -U thigo -d thigo -c "insert into users (phone) values ('+84860000006') on conflict do nothing; insert into user_roles (user_id, role) select id, 'MERCHANT' from users where phone = '+84860000006' on conflict do nothing"
@@ -157,7 +171,7 @@ Confirm the database afterwards:
 docker compose exec postgres psql -U thigo -d thigo -c "select s.name, s.is_active, s.phone, p.name, p.price_vnd, p.is_available, p.image_url is not null as has_image from stores s join products p on p.store_id = s.id join users u on u.id = s.owner_user_id where u.phone = '+84860000005' order by p.position"
 ```
 
-## 8. Capturing evidence and reporting failures
+## 9. Capturing evidence and reporting failures
 
 Save evidence in one folder per run, named after the date and the device (for example `2026-10-09-pixel7-api35`).
 

@@ -28,7 +28,8 @@ const copy = {
   phoneBody: "Thiết lập cửa hàng, thực đơn và giá bán của bạn trên THIGO.",
   otpTitle: "Nhập mã xác thực",
   otpBody: "Xác nhận để vào khu vực quản lý cửa hàng.",
-  footer: "Chỉ số điện thoại đã được cấp quyền Nhà bán hàng mới đăng nhập được."
+  footer:
+    "Chưa là đối tác? Đăng nhập bằng số điện thoại của bạn để đăng ký trở thành đối tác THIGO."
 };
 
 type Props = { session: AuthSession };

@@ -13,7 +13,11 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 import { readAuthEnvironment } from "../../config/auth-environment.js";
-import { RequestOtpDto, VerifyOtpDto } from "../../dto/auth/auth.dto.js";
+import {
+  RequestOtpDto,
+  VerifyOtpDto,
+  isSignInPurpose
+} from "../../dto/auth/auth.dto.js";
 import { ApplicationRole } from "../../entities/auth/user-role.entity.js";
 import { AuthService } from "../../services/auth/auth.service.js";
 @Controller("auth")
@@ -27,8 +31,7 @@ export class AuthController {
     @Body() body: VerifyOtpDto,
     @Res({ passthrough: true }) response: Response
   ) {
-    if (!Object.values(ApplicationRole).includes(body.application))
-      throw new ForbiddenException();
+    if (!isSignInPurpose(body.application)) throw new ForbiddenException();
     const result = await this.auth.verifyOtp(
       body.phone,
       body.otp,

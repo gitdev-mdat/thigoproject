@@ -91,6 +91,13 @@ export default function OverviewPage() {
 function Overview({ data }: { data: AdminOverview }) {
   const week = data.delivered.last7Days;
   const attention = [
+    data.partners.pendingReview
+      ? {
+          key: "partners",
+          text: `${data.partners.pendingReview} hồ sơ đối tác đang chờ duyệt`,
+          href: "/partners"
+        }
+      : null,
     data.orders.byStatus.PENDING
       ? {
           key: "pending",

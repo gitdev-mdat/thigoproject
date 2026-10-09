@@ -119,6 +119,7 @@ export class AdminService {
         onDelivery,
         idle: Math.max(0, drivers - onDelivery)
       },
+      partners: { pendingReview: Number(totals.pending_applications) },
       daily: daily.map((day) => ({
         date: day.date,
         placed: Number(day.placed),

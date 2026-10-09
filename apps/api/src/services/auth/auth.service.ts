@@ -6,13 +6,13 @@ import {
   UnauthorizedException
 } from "@nestjs/common";
 import { readAuthEnvironment } from "../../config/auth-environment.js";
-import { ApplicationRole } from "../../entities/auth/user-role.entity.js";
 import {
   hashSecret,
   createSessionToken,
   verifySecret
 } from "../../common/auth/crypto.js";
 import { canonicalizeVietnamesePhone } from "../../common/auth/phone-number.js";
+import type { SignInPurpose } from "../../dto/auth/auth.dto.js";
 import { AuthRepository } from "../../repositories/auth/auth.repository.js";
 import { developmentQuickLoginAccounts } from "../../development/auth-fixtures.js";
 
@@ -54,7 +54,7 @@ export class AuthService {
     });
     return { accepted: true };
   }
-  async verifyOtp(phoneInput: string, otp: string, role: ApplicationRole) {
+  async verifyOtp(phoneInput: string, otp: string, role: SignInPurpose) {
     const phone = this.phone(phoneInput);
     const challenge = await this.repository.latestChallenge(phone);
     if (
