@@ -147,6 +147,60 @@ export interface AdminStoreRow {
   deliveredOrders: number;
   deliveredValueVnd: number;
   createdAt: string;
+  description: string | null;
+  logoImageUrl: string | null;
+  coverImageUrl: string | null;
+  categoryCount: number;
+  archivedProductCount: number;
+  applicationId: string | null;
+}
+
+export interface AdminProduct {
+  id: string;
+  categoryId: string;
+  name: string;
+  description: string | null;
+  priceVnd: number;
+  imageUrl: string | null;
+  isAvailable: boolean;
+  /** Archived products stay for order history but are hidden from customers. */
+  archivedAt: string | null;
+  updatedAt: string;
+  orderedQuantity: number;
+  optionGroups: {
+    name: string;
+    minSelect: number;
+    maxSelect: number;
+    options: { name: string; priceDeltaVnd: number; isAvailable: boolean }[];
+  }[];
+}
+
+export interface AdminStoreDetail {
+  store: AdminStoreRow & {
+    openingHours: ({ open: string; close: string } | null)[] | null;
+    updatedAt: string;
+    /** Whether customers can order right now (published, accepting, open hours). */
+    isOpenNow: boolean;
+    closedReason: string | null;
+  };
+  owner: { userId: string; phone: string; since: string };
+  application: {
+    id: string;
+    code: string;
+    source: string;
+    activatedAt: string | null;
+  } | null;
+  categories: {
+    id: string;
+    name: string;
+    isActive: boolean;
+    products: AdminProduct[];
+  }[];
+  archivedProducts: AdminProduct[];
+  orders: {
+    byStatus: Record<OrderStatus, number>;
+    recent: AdminOrderRow[];
+  };
 }
 
 export interface AdminUserRow {

@@ -31,6 +31,7 @@ import {
   type EventRow
 } from "../../repositories/merchant/merchant-application.repository.js";
 import { isUuid } from "../../dto/merchant/storefront.dto.js";
+import { ApplicationMediaService } from "./application-media.service.js";
 import { storeSlug } from "./storefront.service.js";
 
 const iso = (value: Date | null) => (value ? value.toISOString() : null);
@@ -113,7 +114,10 @@ function unwrap(result: DecisionResult | CreateResult): MerchantApplication {
  */
 @Injectable()
 export class MerchantApplicationService {
-  constructor(private readonly applications: MerchantApplicationRepository) {}
+  constructor(
+    private readonly applications: MerchantApplicationRepository,
+    private readonly media: ApplicationMediaService
+  ) {}
 
   // ---- Applicant ----
 
@@ -133,6 +137,7 @@ export class MerchantApplicationService {
     return {
       isMerchant,
       application: owned ? toApplicationDto(owned) : null,
+      media: owned ? await this.media.listForApplicant(owned.id) : [],
       history: owned
         ? (await this.applications.history(owned.id)).map((row) =>
             toEvent(row, false)
@@ -241,8 +246,30 @@ export class MerchantApplicationService {
     ) as Record<S, number>;
     for (const row of counts)
       if (row.key in byStatus) byStatus[row.key as S] = Number(row.count);
+    const extras = new Map(
+      (await this.applications.listExtras(rows.map((row) => row.id))).map(
+        (row) => [row.id, row]
+      )
+    );
     return {
-      items: rows.map(toApplicationDto),
+      items: rows.map((row) => {
+        const extra = extras.get(row.id);
+        return {
+          ...toApplicationDto(row),
+          store:
+            extra && extra.store_published !== null
+              ? {
+                  isPublished: extra.store_published,
+                  availableProductCount: Number(extra.store_products ?? 0),
+                  coverImageUrl: extra.store_cover
+                }
+              : null,
+          mediaCount: Number(extra?.media_count ?? 0),
+          previewUrl: extra?.cover_media_id
+            ? ApplicationMediaService.adminUrl(row.id, extra.cover_media_id)
+            : null
+        };
+      }),
       page: query.page,
       pageSize: query.pageSize,
       total,
@@ -271,7 +298,8 @@ export class MerchantApplicationService {
         hasStore: account.storeId !== null
       },
       store,
-      history: history.map((row) => toEvent(row, true))
+      history: history.map((row) => toEvent(row, true)),
+      media: await this.media.listForAdmin(application.id)
     };
   }
 

@@ -4,10 +4,12 @@ import type {
   AdminDriverRow,
   AdminOrderRow,
   AdminOverview,
+  AdminStoreDetail,
   AdminStoreRow,
   AdminUserRow,
   ApplicationDetail,
   ApplicationPage,
+  CustomerStoreView,
   Page,
   PartnerInput
 } from "../types/admin";
@@ -58,6 +60,25 @@ async function get<T>(path: string, query: Query = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
+/** Catalog images are public; relative API paths get the API origin. */
+export function imageSrc(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  return url.startsWith("/") ? `${apiBaseUrl}${url}` : url;
+}
+
+/**
+ * Loads a private image (application media) with the Admin session and
+ * returns an object URL, so the image never needs a public address.
+ */
+export async function loadPrivateImage(url: string): Promise<string> {
+  const response = await fetch(`${apiBaseUrl}${url}`, {
+    credentials: "include",
+    cache: "no-store"
+  });
+  if (!response.ok) throw new AdminApiError("failed");
+  return URL.createObjectURL(await response.blob());
+}
+
 async function post<T>(path: string, body: unknown = {}): Promise<T> {
   let response: Response;
   try {
@@ -90,6 +111,12 @@ export const adminApi = {
   stores: (query: Query) => get<Page<AdminStoreRow>>("/admin/stores", query),
   users: (query: Query) => get<Page<AdminUserRow>>("/admin/users", query),
   drivers: (query: Query) => get<Page<AdminDriverRow>>("/admin/drivers", query),
+  store: (id: string) =>
+    get<AdminStoreDetail>(`/admin/stores/${encodeURIComponent(id)}`),
+  storeCustomerView: (id: string) =>
+    get<CustomerStoreView>(
+      `/admin/stores/${encodeURIComponent(id)}/customer-view`
+    ),
   applications: (query: Query) =>
     get<ApplicationPage>("/admin/merchant-applications", query),
   application: (id: string) =>

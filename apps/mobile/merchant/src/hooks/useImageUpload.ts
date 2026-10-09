@@ -2,7 +2,12 @@ import { useCallback, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 
 import { ApiError } from "../services/api";
-import { UPLOAD_MESSAGES, precheckImage, uploadImage } from "../services/media";
+import {
+  UPLOAD_MESSAGES,
+  precheckImage,
+  uploadImage,
+  type PickedImage
+} from "../services/media";
 import type { MediaUpload } from "../types/storefront";
 
 export type UploadStatus = "idle" | "picking" | "uploading" | "error";
@@ -18,7 +23,10 @@ export type PickedUpload = {
  * returned media id with its own PATCH, so an upload never changes data alone.
  * `previewUri` is the local file only while it uploads.
  */
-export function useImageUpload(aspect: [number, number] = [4, 3]) {
+export function useImageUpload(
+  aspect: [number, number] = [4, 3],
+  upload: (image: PickedImage) => Promise<MediaUpload> = uploadImage
+) {
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [error, setError] = useState("");
   const [previewUri, setPreviewUri] = useState<string>();
@@ -57,7 +65,7 @@ export function useImageUpload(aspect: [number, number] = [4, 3]) {
       }
       setPreviewUri(asset.uri);
       setStatus("uploading");
-      const media = await uploadImage(asset);
+      const media = await upload(asset);
       // The local preview covers only the upload; callers show media.url next.
       setPreviewUri(undefined);
       setStatus("idle");
@@ -70,7 +78,7 @@ export function useImageUpload(aspect: [number, number] = [4, 3]) {
     } finally {
       busy.current = false;
     }
-  }, [aspect]);
+  }, [aspect, upload]);
 
   const clear = useCallback(() => {
     setError("");

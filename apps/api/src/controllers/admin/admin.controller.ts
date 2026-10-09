@@ -7,9 +7,12 @@ import {
   Param,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UnsupportedMediaTypeException,
   UseGuards
 } from "@nestjs/common";
+import type { Response } from "express";
 import {
   parseApplicationListQuery,
   parseOrderListQuery,
@@ -29,7 +32,9 @@ import {
   type AuthenticatedUser
 } from "../../guards/role.guard.js";
 import { AdminService } from "../../services/admin/admin.service.js";
+import { ApplicationMediaService } from "../../services/merchant/application-media.service.js";
 import { MerchantApplicationService } from "../../services/merchant/merchant-application.service.js";
+import { PRIVATE_IMAGE_HEADERS } from "../merchant/merchant-application.controller.js";
 
 /**
  * Cookie-authenticated writes accept JSON only. A cross-site form cannot send
@@ -47,7 +52,8 @@ function requireJson(contentType: string | undefined) {
 export class AdminController {
   constructor(
     private readonly admin: AdminService,
-    private readonly applications: MerchantApplicationService
+    private readonly applications: MerchantApplicationService,
+    private readonly media: ApplicationMediaService
   ) {}
 
   @Get("overview") overview() {
@@ -60,6 +66,14 @@ export class AdminController {
 
   @Get("stores") stores(@Query() query: Record<string, unknown>) {
     return this.admin.stores(parseStoreListQuery(query));
+  }
+
+  @Get("stores/:id") store(@Param("id") id: string) {
+    return this.admin.storeDetail(id);
+  }
+
+  @Get("stores/:id/customer-view") storeCustomerView(@Param("id") id: string) {
+    return this.admin.storeCustomerView(id);
   }
 
   @Get("users") users(@Query() query: Record<string, unknown>) {
@@ -78,6 +92,20 @@ export class AdminController {
 
   @Get("merchant-applications/:id") application(@Param("id") id: string) {
     return this.applications.detail(id);
+  }
+
+  /** A submitted application image; private, never part of the public catalog. */
+  @Get("merchant-applications/:id/media/:mediaId") async applicationMedia(
+    @Param("id") id: string,
+    @Param("mediaId") mediaId: string,
+    @Res({ passthrough: true }) response: Response
+  ): Promise<StreamableFile> {
+    const { item, stream } = await this.media.openForAdmin(id, mediaId);
+    response.set(PRIVATE_IMAGE_HEADERS);
+    return new StreamableFile(stream, {
+      type: item.contentType,
+      length: item.byteSize
+    });
   }
 
   /** Admin-assisted onboarding: the application starts approved. */

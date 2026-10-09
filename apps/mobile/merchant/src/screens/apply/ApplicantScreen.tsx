@@ -19,6 +19,7 @@ import { Card } from "../../components/Card";
 import { Notice } from "../../components/Notice";
 import { StatePanel } from "../../components/StatePanel";
 import { TextField } from "../../components/TextField";
+import { ApplicationPhotos } from "./ApplicationPhotos";
 import { StoreProfileFields } from "../../components/store/StoreProfileFields";
 import type { AuthSession } from "../../hooks/useAuthSession";
 import { attempt } from "../../services/api";
@@ -111,7 +112,8 @@ export function ApplicantScreen({ session }: Props) {
     tone: "success" | "danger";
   }>();
   const [accountOpen, setAccountOpen] = useState(false);
-  const { refreshAccess } = session;
+  // Only stable callbacks: the session object changes on every countdown tick.
+  const { refreshAccess, logout } = session;
 
   const load = useCallback(async () => {
     setBusy("load");
@@ -120,17 +122,23 @@ export function ApplicantScreen({ session }: Props) {
     const result = await attempt(fetchMyApplication);
     setBusy("");
     if (!result.ok) {
-      if (result.status === 401) return void session.logout();
+      if (result.status === 401) return void logout();
       return setLoadError(result.message);
     }
     setMine(result.value);
-  }, [session]);
+  }, [logout]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   const view = mine ? applicantView(mine) : null;
+
+  /** Reloads quietly after an image change, keeping the form as typed. */
+  const refresh = useCallback(async () => {
+    const result = await attempt(fetchMyApplication);
+    if (result.ok) setMine(result.value);
+  }, []);
 
   // An approval already granted the role: open the store.
   useEffect(() => {
@@ -249,6 +257,15 @@ export function ApplicantScreen({ session }: Props) {
           error={errors.contactName}
           helper="THIGO gọi người này khi cần trao đổi về hồ sơ."
         />
+        {mine.application && mine.canEdit && !mine.canStartNew ? (
+          <ApplicationPhotos
+            images={mine.media}
+            editable={!busy}
+            onChanged={() => void refresh()}
+          />
+        ) : (
+          <Notice message="Bấm “Lưu nháp” một lần để thêm logo, ảnh bìa và ảnh quán (không bắt buộc)." />
+        )}
         {message ? <Notice message={message.text} tone={message.tone} /> : null}
         <Button
           label="Xem lại hồ sơ"
@@ -406,6 +423,13 @@ function StatusContent({
         <Notice message={`Lý do: ${application.reviewNote}`} tone="danger" />
       ) : null}
       {application && view !== "intro" ? <Summary mine={mine} /> : null}
+      {application && view !== "intro" && mine.media.length ? (
+        <ApplicationPhotos
+          images={mine.media}
+          editable={false}
+          onChanged={() => undefined}
+        />
+      ) : null}
       {view === "draft" ? (
         <>
           <Button label="Xem lại và gửi" prominent onPress={onReview} />

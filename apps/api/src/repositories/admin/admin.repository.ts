@@ -55,6 +55,55 @@ export interface StoreRowRecord {
   delivered_orders: number;
   delivered_value_vnd: number;
   created_at: Date;
+  description: string | null;
+  logo_image_url: string | null;
+  cover_image_url: string | null;
+  category_count: number;
+  archived_product_count: number;
+  application_id: string | null;
+}
+
+export interface StoreDetailRecord extends StoreRowRecord {
+  owner_user_id: string;
+  owner_since: Date;
+  opening_hours: ({ open: string; close: string } | null)[] | null;
+  updated_at: Date;
+  application_code: string | null;
+  application_source: string | null;
+  application_activated_at: Date | null;
+}
+
+export interface CategoryRecord {
+  id: string;
+  name: string;
+  position: number;
+  is_active: boolean;
+}
+
+export interface ProductRecord {
+  id: string;
+  category_id: string;
+  name: string;
+  description: string | null;
+  price_vnd: number;
+  image_url: string | null;
+  is_available: boolean;
+  archived_at: Date | null;
+  position: number;
+  updated_at: Date;
+  option_groups:
+    | {
+        name: string;
+        min_select: number;
+        max_select: number;
+        options: {
+          name: string;
+          price_delta_vnd: number;
+          is_available: boolean;
+        }[];
+      }[]
+    | null;
+  ordered_quantity: number;
 }
 
 export interface UserRowRecord {
@@ -277,7 +326,10 @@ export class AdminRepository {
               (SELECT COUNT(*) FROM orders o WHERE o.store_id = s.id AND o.status = ANY($${active}))::int AS active_orders,
               (SELECT COUNT(*) FROM orders o WHERE o.store_id = s.id AND o.status = 'DELIVERED')::int AS delivered_orders,
               (SELECT COALESCE(SUM(o.total_vnd), 0) FROM orders o WHERE o.store_id = s.id AND o.status = 'DELIVERED')::bigint AS delivered_value_vnd,
-              s.created_at
+              s.created_at, s.description, s.logo_image_url, s.cover_image_url,
+              (SELECT COUNT(*) FROM menu_categories c WHERE c.store_id = s.id)::int AS category_count,
+              (SELECT COUNT(*) FROM products p WHERE p.store_id = s.id AND p.archived_at IS NOT NULL)::int AS archived_product_count,
+              (SELECT a.id FROM merchant_applications a WHERE a.store_id = s.id) AS application_id
          FROM stores s
          JOIN users u ON u.id = s.owner_user_id
          ${filter}
@@ -354,6 +406,73 @@ export class AdminRepository {
   private async count(sql: string, params: unknown[] = []): Promise<number> {
     const rows = (await this.db.query(sql, params)) as { total: number }[];
     return Number(rows[0]?.total ?? 0);
+  }
+
+  async storeDetail(id: string): Promise<StoreDetailRecord | null> {
+    const [row] = (await this.db.query(
+      `SELECT s.id, s.name, s.slug, s.category::text AS category, s.address_line,
+              s.phone, s.description, s.logo_image_url, s.cover_image_url,
+              s.is_active, s.is_accepting_orders, s.opening_hours, s.created_at, s.updated_at,
+              u.id AS owner_user_id, u.phone AS owner_phone, u.created_at AS owner_since,
+              a.id AS application_id, a.code AS application_code,
+              a.source::text AS application_source, a.activated_at AS application_activated_at,
+              (SELECT COUNT(*) FROM menu_categories c WHERE c.store_id = s.id)::int AS category_count,
+              (SELECT COUNT(*) FROM products p WHERE p.store_id = s.id AND p.archived_at IS NULL)::int AS product_count,
+              (SELECT COUNT(*) FROM products p WHERE p.store_id = s.id AND p.archived_at IS NULL AND p.is_available)::int AS available_product_count,
+              (SELECT COUNT(*) FROM products p WHERE p.store_id = s.id AND p.archived_at IS NOT NULL)::int AS archived_product_count,
+              (SELECT COUNT(*) FROM orders o WHERE o.store_id = s.id AND o.status = ANY($2))::int AS active_orders,
+              (SELECT COUNT(*) FROM orders o WHERE o.store_id = s.id AND o.status = 'DELIVERED')::int AS delivered_orders,
+              (SELECT COALESCE(SUM(o.total_vnd), 0) FROM orders o WHERE o.store_id = s.id AND o.status = 'DELIVERED')::bigint AS delivered_value_vnd
+         FROM stores s
+         JOIN users u ON u.id = s.owner_user_id
+         LEFT JOIN merchant_applications a ON a.store_id = s.id
+        WHERE s.id = $1`,
+      [id, ADMIN_ACTIVE_STATUSES]
+    )) as StoreDetailRecord[];
+    return row ?? null;
+  }
+
+  storeCategories(storeId: string): Promise<CategoryRecord[]> {
+    return this.db.query(
+      `SELECT id, name, position, is_active FROM menu_categories
+        WHERE store_id = $1 ORDER BY position, name, id`,
+      [storeId]
+    );
+  }
+
+  /** Every product of the store, archived ones included, with its options. */
+  storeProducts(storeId: string): Promise<ProductRecord[]> {
+    return this.db.query(
+      `SELECT p.id, p.category_id, p.name, p.description, p.price_vnd, p.image_url,
+              p.is_available, p.archived_at, p.position, p.updated_at,
+              (SELECT COALESCE(SUM(i.quantity), 0) FROM order_items i WHERE i.product_id = p.id)::int AS ordered_quantity,
+              (SELECT json_agg(json_build_object(
+                        'name', g.name, 'min_select', g.min_select, 'max_select', g.max_select,
+                        'options', (SELECT COALESCE(json_agg(json_build_object(
+                                      'name', o.name, 'price_delta_vnd', o.price_delta_vnd, 'is_available', o.is_available)
+                                    ORDER BY o.position, o.name), '[]'::json)
+                                    FROM product_options o WHERE o.group_id = g.id))
+                      ORDER BY g.position, g.name)
+                 FROM product_option_groups g WHERE g.product_id = p.id) AS option_groups
+         FROM products p
+        WHERE p.store_id = $1
+        ORDER BY p.archived_at NULLS FIRST, p.position, p.name, p.id`,
+      [storeId]
+    );
+  }
+
+  storeOrdersByStatus(storeId: string): Promise<CountRow[]> {
+    return this.db.query(
+      `SELECT status::text AS key, COUNT(*)::int AS count FROM orders WHERE store_id = $1 GROUP BY status`,
+      [storeId]
+    );
+  }
+
+  storeRecentOrders(storeId: string, limit: number): Promise<OrderRowRecord[]> {
+    return this.db.query(
+      `${ORDER_ROW_SELECT} WHERE o.store_id = $1 ORDER BY o.placed_at DESC, o.id LIMIT $2`,
+      [storeId, limit]
+    );
   }
 
   recentOrders(limit: number): Promise<OrderRowRecord[]> {

@@ -49,6 +49,12 @@ export interface AdminStoreRow {
   deliveredOrders: number;
   deliveredValueVnd: number;
   createdAt: string;
+  description: string | null;
+  logoImageUrl: string | null;
+  coverImageUrl: string | null;
+  categoryCount: number;
+  archivedProductCount: number;
+  applicationId: string | null;
 }
 
 export interface AdminUserRow {
@@ -137,7 +143,18 @@ export interface MerchantApplication {
   updatedAt: string;
 }
 
-export interface ApplicationPage extends Page<MerchantApplication> {
+export interface ApplicationListItem extends MerchantApplication {
+  store: {
+    isPublished: boolean;
+    availableProductCount: number;
+    coverImageUrl: string | null;
+  } | null;
+  mediaCount: number;
+  /** Private image URL; load it with the Admin session. */
+  previewUrl: string | null;
+}
+
+export interface ApplicationPage extends Page<ApplicationListItem> {
   byStatus: Record<ApplicationStatus, number>;
 }
 
@@ -159,8 +176,17 @@ export interface ApplicationDetail {
     roles: Role[];
     hasStore: boolean;
   };
-  store: { id: string; name: string; isPublished: boolean } | null;
+  store: {
+    id: string;
+    name: string;
+    isPublished: boolean;
+    availableProductCount: number;
+    categoryCount: number;
+    logoImageUrl: string | null;
+    coverImageUrl: string | null;
+  } | null;
   history: ApplicationEvent[];
+  media: ApplicationMedia[];
 }
 
 export interface PartnerInput {
@@ -171,4 +197,82 @@ export interface PartnerInput {
   contactPhone: string;
   addressLine: string;
   description?: string;
+}
+
+export interface AdminProduct {
+  id: string;
+  categoryId: string;
+  name: string;
+  description: string | null;
+  priceVnd: number;
+  imageUrl: string | null;
+  isAvailable: boolean;
+  archivedAt: string | null;
+  updatedAt: string;
+  orderedQuantity: number;
+  optionGroups: {
+    name: string;
+    minSelect: number;
+    maxSelect: number;
+    options: { name: string; priceDeltaVnd: number; isAvailable: boolean }[];
+  }[];
+}
+
+export type ClosedReason = "UNPUBLISHED" | "PAUSED" | "OUTSIDE_HOURS";
+
+export interface AdminStoreDetail {
+  store: AdminStoreRow & {
+    openingHours: ({ open: string; close: string } | null)[] | null;
+    updatedAt: string;
+    isOpenNow: boolean;
+    closedReason: ClosedReason | null;
+  };
+  owner: { userId: string; phone: string; since: string };
+  application: {
+    id: string;
+    code: string;
+    source: string;
+    activatedAt: string | null;
+  } | null;
+  categories: {
+    id: string;
+    name: string;
+    isActive: boolean;
+    products: AdminProduct[];
+  }[];
+  archivedProducts: AdminProduct[];
+  orders: { byStatus: Record<OrderStatus, number>; recent: AdminOrderRow[] };
+}
+
+export interface CustomerProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  priceVnd: number;
+  imageUrl: string | null;
+  isAvailable: boolean;
+}
+
+export interface CustomerStoreView {
+  visible: boolean;
+  store: {
+    id: string;
+    name: string;
+    description: string | null;
+    addressLine: string;
+    coverImageUrl: string | null;
+    logoImageUrl: string | null;
+    isOpen: boolean;
+    closedReason: ClosedReason | null;
+    categories: { id: string; name: string; products: CustomerProduct[] }[];
+  } | null;
+}
+
+export interface ApplicationMedia {
+  id: string;
+  kind: "LOGO" | "COVER" | "PHOTO";
+  contentType: string;
+  byteSize: number;
+  createdAt: string;
+  url: string;
 }

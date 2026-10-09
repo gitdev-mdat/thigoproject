@@ -95,6 +95,15 @@ export interface ApplicationDto {
   updatedAt: string;
 }
 
+export interface ApplicationMediaRefDto {
+  id: string;
+  kind: "LOGO" | "COVER" | "PHOTO";
+  contentType: string;
+  byteSize: number;
+  createdAt: string;
+  url: string;
+}
+
 export interface ApplicationEventDto {
   fromStatus: MerchantApplicationStatus | null;
   toStatus: MerchantApplicationStatus;
@@ -112,6 +121,8 @@ export interface MyApplicationDto {
   isMerchant: boolean;
   application: ApplicationDto | null;
   history: ApplicationEventDto[];
+  /** Private images; URLs need the viewer's own session. */
+  media: ApplicationMediaRefDto[];
   /** What the applicant can do now. */
   canEdit: boolean;
   canSubmit: boolean;
@@ -127,6 +138,16 @@ export interface AdminApplicationDetailDto {
     roles: string[];
     hasStore: boolean;
   };
-  store: { id: string; name: string; isPublished: boolean } | null;
+  store: {
+    id: string;
+    name: string;
+    isPublished: boolean;
+    availableProductCount: number;
+    categoryCount: number;
+    logoImageUrl: string | null;
+    coverImageUrl: string | null;
+  } | null;
   history: ApplicationEventDto[];
+  /** Private images; URLs need the viewer's own session. */
+  media: ApplicationMediaRefDto[];
 }

@@ -33,7 +33,17 @@ export type ApplicationEvent = {
   createdAt: string;
 };
 
+export type ApplicationImage = {
+  id: string;
+  kind: "LOGO" | "COVER" | "PHOTO";
+  contentType: string;
+  byteSize: number;
+  createdAt: string;
+  url: string;
+};
+
 export type MyApplication = {
+  media: ApplicationImage[];
   isMerchant: boolean;
   application: MerchantApplication | null;
   history: ApplicationEvent[];

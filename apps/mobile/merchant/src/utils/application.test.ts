@@ -10,6 +10,7 @@ import {
 
 const base: MyApplication = {
   isMerchant: false,
+  media: [],
   application: null,
   history: [],
   canEdit: true,

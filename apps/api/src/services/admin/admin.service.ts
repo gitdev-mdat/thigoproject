@@ -1,8 +1,13 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { storeClosedReason } from "../../common/catalog/store-availability.js";
+import { isUuid } from "../../dto/merchant/storefront.dto.js";
+import { CustomerCatalogService } from "../catalog/customer-catalog.service.js";
 import type {
   AdminDriverRow,
   AdminOrderRow,
   AdminOverview,
+  AdminProduct,
+  AdminStoreDetail,
   AdminStoreRow,
   AdminUserRow,
   OrderListQuery,
@@ -18,8 +23,36 @@ import {
   ADMIN_TIMEZONE,
   AdminRepository,
   type CountRow,
-  type OrderRowRecord
+  type OrderRowRecord,
+  type ProductRecord
 } from "../../repositories/admin/admin.repository.js";
+
+function toAdminProduct(product: ProductRecord): AdminProduct {
+  return {
+    id: product.id,
+    categoryId: product.category_id,
+    name: product.name,
+    description: product.description,
+    priceVnd: Number(product.price_vnd),
+    imageUrl: product.image_url,
+    isAvailable: product.is_available,
+    archivedAt: product.archived_at
+      ? new Date(product.archived_at).toISOString()
+      : null,
+    updatedAt: new Date(product.updated_at).toISOString(),
+    orderedQuantity: Number(product.ordered_quantity),
+    optionGroups: (product.option_groups ?? []).map((group) => ({
+      name: group.name,
+      minSelect: group.min_select,
+      maxSelect: group.max_select,
+      options: group.options.map((option) => ({
+        name: option.name,
+        priceDeltaVnd: option.price_delta_vnd,
+        isAvailable: option.is_available
+      }))
+    }))
+  };
+}
 
 export const ADMIN_DAILY_DAYS = 14;
 
@@ -59,7 +92,10 @@ export function toAdminOrder(row: OrderRowRecord): AdminOrderRow {
 /** Read-only operational reporting for ADMIN users; every figure comes from PostgreSQL. */
 @Injectable()
 export class AdminService {
-  constructor(private readonly repository: AdminRepository) {}
+  constructor(
+    private readonly repository: AdminRepository,
+    private readonly catalog: CustomerCatalogService
+  ) {}
 
   async overview(): Promise<AdminOverview> {
     const [totals, roles, categories, statuses, daily, recent, top] =
@@ -161,9 +197,102 @@ export class AdminService {
         activeOrders: Number(row.active_orders),
         deliveredOrders: Number(row.delivered_orders),
         deliveredValueVnd: Number(row.delivered_value_vnd),
-        createdAt: iso(row.created_at)!
+        createdAt: iso(row.created_at)!,
+        description: row.description,
+        logoImageUrl: row.logo_image_url,
+        coverImageUrl: row.cover_image_url,
+        categoryCount: Number(row.category_count),
+        archivedProductCount: Number(row.archived_product_count),
+        applicationId: row.application_id
       }))
     );
+  }
+
+  /** Everything the merchant manages for one store, read-only. */
+  async storeDetail(id: string): Promise<AdminStoreDetail> {
+    const row = isUuid(id) ? await this.repository.storeDetail(id) : null;
+    if (!row) throw new NotFoundException("Không tìm thấy cửa hàng.");
+    const [categories, products, statuses, recent] = await Promise.all([
+      this.repository.storeCategories(id),
+      this.repository.storeProducts(id),
+      this.repository.storeOrdersByStatus(id),
+      this.repository.storeRecentOrders(id, 8)
+    ]);
+    const live = products.filter((product) => !product.archived_at);
+    const closedReason = storeClosedReason({
+      isActive: row.is_active,
+      isAcceptingOrders: row.is_accepting_orders,
+      openingHours: row.opening_hours
+    });
+    return {
+      store: {
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        category: row.category as StoreCategory,
+        addressLine: row.address_line,
+        phone: row.phone,
+        ownerPhone: row.owner_phone,
+        isPublished: row.is_active,
+        isAcceptingOrders: row.is_accepting_orders,
+        productCount: Number(row.product_count),
+        availableProductCount: Number(row.available_product_count),
+        activeOrders: Number(row.active_orders),
+        deliveredOrders: Number(row.delivered_orders),
+        deliveredValueVnd: Number(row.delivered_value_vnd),
+        createdAt: iso(row.created_at)!,
+        description: row.description,
+        logoImageUrl: row.logo_image_url,
+        coverImageUrl: row.cover_image_url,
+        categoryCount: Number(row.category_count),
+        archivedProductCount: Number(row.archived_product_count),
+        applicationId: row.application_id,
+        openingHours: row.opening_hours,
+        updatedAt: iso(row.updated_at)!,
+        isOpenNow: closedReason === null,
+        closedReason
+      },
+      owner: {
+        userId: row.owner_user_id,
+        phone: row.owner_phone,
+        since: iso(row.owner_since)!
+      },
+      application:
+        row.application_id && row.application_code
+          ? {
+              id: row.application_id,
+              code: row.application_code,
+              source: row.application_source ?? "SELF",
+              activatedAt: iso(row.application_activated_at)
+            }
+          : null,
+      categories: categories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        isActive: category.is_active,
+        products: live
+          .filter((product) => product.category_id === category.id)
+          .map(toAdminProduct)
+      })),
+      archivedProducts: products
+        .filter((product) => product.archived_at)
+        .map(toAdminProduct),
+      orders: {
+        byStatus: countsBy(Object.values(OrderStatus), statuses),
+        recent: recent.map(toAdminOrder)
+      }
+    };
+  }
+
+  /** Exactly what the customer app gets for this store, or null when hidden. */
+  async storeCustomerView(id: string) {
+    try {
+      return { visible: true as const, store: await this.catalog.store(id) };
+    } catch (error) {
+      if (error instanceof NotFoundException)
+        return { visible: false as const, store: null };
+      throw error;
+    }
   }
 
   async users(query: UserListQuery): Promise<Page<AdminUserRow>> {

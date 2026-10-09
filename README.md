@@ -134,6 +134,8 @@ There are two ways in, and both end with an Admin decision:
 
 Admins review applications under **Đối tác**: approve, request changes with a reason, or reject with a reason. Approval grants the Merchant role and creates the store, unpublished, in one transaction; repeated or concurrent approvals are refused. Every step is kept in the application history with who did it and when. Merchant accounts that already existed keep working without an application.
 
+Applicants can attach an optional logo, cover and up to four photos while the application is a draft or has changes requested. These images are private to the applicant and Admins, appear in the Admin review page, and are not copied to the storefront. In the Admin, **Cửa hàng** opens a read-only store detail with the owner, hours, categories, every product (including hidden and archived ones), order activity and a preview of what customers see.
+
 After approval the owner finishes **storefront setup** in the Merchant app: logo and cover, categories and products, opening hours, then publish. A store can be published once it has a valid phone, a valid address and at least one available product in a visible category; publishing needs no Admin approval.
 
 Uploaded images are written to `MEDIA_STORAGE_DIR` (default

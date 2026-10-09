@@ -87,20 +87,52 @@ export function uploadErrorMessage(
 
 type Fetcher = typeof fetch;
 
+/**
+ * Sends a multipart POST through React Native's XMLHttpRequest. Expo's
+ * global fetch cannot encode RN's `{ uri, name, type }` file part, while
+ * RN's networking layer streams it from the device.
+ */
+export const xhrFetch: Fetcher = (input, init) =>
+  new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open(init?.method ?? "GET", String(input));
+    for (const [key, value] of Object.entries(
+      (init?.headers ?? {}) as Record<string, string>
+    ))
+      request.setRequestHeader(key, value);
+    request.onload = () => {
+      const text = request.responseText;
+      resolve({
+        ok: request.status >= 200 && request.status < 300,
+        status: request.status,
+        json: async () => JSON.parse(text) as unknown
+      } as Response);
+    };
+    request.onerror = () => reject(new TypeError("Network request failed"));
+    request.ontimeout = request.onerror;
+    request.send(init?.body as XMLHttpRequestBodyInit);
+  });
+
 export function createImageUploader(
   baseUrl: string,
   readToken: () => Promise<string | null>,
-  fetcher: Fetcher = (...args) => fetch(...args)
+  fetcher: Fetcher = xhrFetch,
+  /** Where to upload, and any extra multipart fields sent before the file. */
+  target: { path: string; fields?: Record<string, string> } = {
+    path: "/merchant/media"
+  }
 ) {
   return async function uploadImage(image: PickedImage): Promise<MediaUpload> {
     const form = new FormData();
+    for (const [key, value] of Object.entries(target.fields ?? {}))
+      form.append(key, value);
     // RN's FormData accepts `{ uri, name, type }`; the DOM typing does not.
     form.append("file", imageFilePart(image) as Blob);
     const token = await readToken();
     let response: Response;
     try {
       // No Content-Type: fetch adds the multipart boundary itself.
-      response = await fetcher(`${baseUrl}/merchant/media`, {
+      response = await fetcher(`${baseUrl}${target.path}`, {
         method: "POST",
         headers: {
           Accept: "application/json",

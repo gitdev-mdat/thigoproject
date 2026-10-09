@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import {
@@ -10,7 +9,16 @@ import {
   formatRelative
 } from "../../components/format";
 import {
-  ApplicationStatusBadge,
+  CatalogImage,
+  ImagePlaceholder,
+  PrivateImage
+} from "../../components/media";
+import {
+  partnerJourney,
+  partnerStage
+} from "../../components/partners/journey";
+import {
+  Badge,
   Card,
   EmptyState,
   ErrorState,
@@ -47,7 +55,6 @@ const EMPTY: Record<Filter, string> = {
 };
 
 export default function PartnersPage() {
-  const router = useRouter();
   const [filter, setFilter] = useState<Filter>("PENDING_REVIEW");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -121,73 +128,68 @@ export default function PartnersPage() {
           />
         ) : (
           <>
-            <div className="table-wrap" aria-busy={query.status === "loading"}>
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Cửa hàng</th>
-                    <th scope="col">Chủ quán</th>
-                    <th scope="col" className="hide-md">
-                      Nguồn
-                    </th>
-                    <th scope="col">Trạng thái</th>
-                    <th scope="col" className="hide-sm">
-                      Cập nhật
-                    </th>
-                    <th scope="col">
-                      <span className="sr-only">Mở hồ sơ</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {query.data.items.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="row-link"
-                      onClick={() => router.push(`/partners/${item.id}`)}
-                    >
-                      <td>
+            <ul className="partner-list" aria-busy={query.status === "loading"}>
+              {query.data.items.map((item) => {
+                const stage = partnerStage({
+                  status: item.status,
+                  activatedAt: item.activatedAt,
+                  store: item.store
+                });
+                const steps = partnerJourney({
+                  status: item.status,
+                  activatedAt: item.activatedAt,
+                  store: item.store
+                });
+                return (
+                  <li key={item.id}>
+                    <Link href={`/partners/${item.id}`} className="partner-row">
+                      <span className="partner-thumb">
+                        {item.previewUrl ? (
+                          <PrivateImage url={item.previewUrl} alt="" />
+                        ) : (
+                          <CatalogImage
+                            url={item.store?.coverImageUrl}
+                            alt=""
+                            fallback={
+                              <ImagePlaceholder
+                                label={item.storeName}
+                                category={item.category}
+                                size="sm"
+                              />
+                            }
+                          />
+                        )}
+                      </span>
+                      <span className="partner-main">
                         <strong>{item.storeName}</strong>
-                        <span className="cell-sub">
-                          {CATEGORY_LABEL[item.category]} · {item.code}
-                        </span>
-                      </td>
-                      <td>
-                        {item.contactName}
-                        <span className="cell-sub">
+                        <span className="small muted">
+                          {CATEGORY_LABEL[item.category]} · {item.contactName} ·{" "}
                           {formatPhone(item.accountPhone)}
                         </span>
-                      </td>
-                      <td className="hide-md">
-                        {item.source === "ADMIN" ? "THIGO thêm" : "Tự đăng ký"}
-                      </td>
-                      <td>
-                        <ApplicationStatusBadge status={item.status} />
-                        {item.status === "APPROVED" && !item.activatedAt ? (
-                          <span className="cell-sub">
-                            Chờ chủ quán kích hoạt
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className="hide-sm muted">
-                        {formatRelative(item.updatedAt)}
-                      </td>
-                      <td className="num">
-                        <Link
-                          className="link small"
-                          href={`/partners/${item.id}`}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          {item.status === "PENDING_REVIEW"
-                            ? "Xem và duyệt"
-                            : "Xem hồ sơ"}
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        <span className="mini-journey" aria-hidden="true">
+                          {steps.map((step) => (
+                            <i key={step.key} className={`is-${step.state}`} />
+                          ))}
+                        </span>
+                      </span>
+                      <span className="partner-meta">
+                        <Badge tone={stage.tone}>{stage.label}</Badge>
+                        <span className="small muted">
+                          {item.source === "ADMIN"
+                            ? "THIGO thêm"
+                            : "Tự đăng ký"}
+                          {item.mediaCount ? ` · ${item.mediaCount} ảnh` : ""}
+                        </span>
+                        <span className="small muted">
+                          {formatRelative(item.updatedAt)}
+                        </span>
+                      </span>
+                      <Icon name="chevronRight" size={18} />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
             <Pagination
               page={query.data.page}
               pageSize={query.data.pageSize}

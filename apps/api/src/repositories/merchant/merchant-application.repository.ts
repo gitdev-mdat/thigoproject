@@ -440,21 +440,73 @@ export class MerchantApplicationRepository {
     return { rows, total };
   }
 
+  /** Store progress and image counts for a page of applications. */
+  async listExtras(ids: string[]): Promise<
+    {
+      id: string;
+      store_published: boolean | null;
+      store_products: number | null;
+      store_cover: string | null;
+      media_count: number;
+      cover_media_id: string | null;
+    }[]
+  > {
+    if (!ids.length) return [];
+    return this.db.query(
+      `SELECT a.id,
+              s.is_active AS store_published,
+              (SELECT COUNT(*) FROM products p WHERE p.store_id = s.id AND p.archived_at IS NULL AND p.is_available)::int AS store_products,
+              s.cover_image_url AS store_cover,
+              (SELECT COUNT(*) FROM merchant_application_media m WHERE m.application_id = a.id)::int AS media_count,
+              (SELECT m.id FROM merchant_application_media m WHERE m.application_id = a.id
+                 ORDER BY CASE m.kind WHEN 'COVER' THEN 0 WHEN 'PHOTO' THEN 1 ELSE 2 END, m.created_at LIMIT 1) AS cover_media_id
+         FROM merchant_applications a
+         LEFT JOIN stores s ON s.id = a.store_id
+        WHERE a.id = ANY($1)`,
+      [ids]
+    );
+  }
+
   async countsByStatus(): Promise<{ key: string; count: number }[]> {
     return this.db.query(
       `SELECT status::text AS key, COUNT(*)::int AS count FROM merchant_applications GROUP BY status`
     );
   }
 
-  async storeSummary(
-    storeId: string
-  ): Promise<{ id: string; name: string; isPublished: boolean } | null> {
+  async storeSummary(storeId: string): Promise<{
+    id: string;
+    name: string;
+    isPublished: boolean;
+    availableProductCount: number;
+    categoryCount: number;
+    logoImageUrl: string | null;
+    coverImageUrl: string | null;
+  } | null> {
     const [row] = (await this.db.query(
-      `SELECT id, name, is_active FROM stores WHERE id = $1`,
+      `SELECT s.id, s.name, s.is_active, s.logo_image_url, s.cover_image_url,
+              (SELECT COUNT(*) FROM products p WHERE p.store_id = s.id AND p.archived_at IS NULL AND p.is_available)::int AS available,
+              (SELECT COUNT(*) FROM menu_categories c WHERE c.store_id = s.id)::int AS categories
+         FROM stores s WHERE s.id = $1`,
       [storeId]
-    )) as { id: string; name: string; is_active: boolean }[];
+    )) as {
+      id: string;
+      name: string;
+      is_active: boolean;
+      logo_image_url: string | null;
+      cover_image_url: string | null;
+      available: number;
+      categories: number;
+    }[];
     return row
-      ? { id: row.id, name: row.name, isPublished: row.is_active }
+      ? {
+          id: row.id,
+          name: row.name,
+          isPublished: row.is_active,
+          availableProductCount: Number(row.available),
+          categoryCount: Number(row.categories),
+          logoImageUrl: row.logo_image_url,
+          coverImageUrl: row.cover_image_url
+        }
       : null;
   }
 

@@ -8,6 +8,6 @@ import { AuthModule } from "./auth.module.js";
   imports: [AuthModule],
   controllers: [CustomerCatalogController],
   providers: [CatalogRepository, CustomerCatalogService, RoleGuard],
-  exports: [CatalogRepository]
+  exports: [CatalogRepository, CustomerCatalogService]
 })
 export class CatalogModule {}
