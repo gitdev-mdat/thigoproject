@@ -1,12 +1,11 @@
-import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { HomeScreen } from "./src/screens/HomeScreen";
+import { RootScreen } from "./src/screens/RootScreen";
 
 export default function App() {
   return (
-    <>
-      <HomeScreen />
-      <StatusBar style="auto" />
-    </>
+    <SafeAreaProvider>
+      <RootScreen />
+    </SafeAreaProvider>
   );
 }

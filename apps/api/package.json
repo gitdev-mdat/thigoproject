@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "nest start --watch",
-    "dev:seed": "nest build && node dist/scripts/seed-development-auth.js",
+    "dev:seed": "nest build && node dist/scripts/seed-development-auth.js && node dist/scripts/seed-development-catalog.js && node dist/scripts/seed-development-orders.js",
     "start": "node dist/main.js",
     "build": "nest build",
     "lint": "eslint . --max-warnings=0",

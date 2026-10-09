@@ -1,289 +1,219 @@
-import { useEffect, useState } from "react";
-import * as SecureStore from "expo-secure-store";
+import { StatusBar } from "expo-status-bar";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  SafeAreaView,
+  Alert,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, radius, spacing, typography } from "@thigo/design-tokens";
+
+import { Button } from "../components/Button";
+import { Notice } from "../components/Notice";
+import { Placeholder } from "../components/Placeholder";
+import { AccountRow } from "../components/delivery/AccountRow";
+import { ActionBar } from "../components/delivery/ActionBar";
+import { AvailableCard } from "../components/delivery/AvailableCard";
+import { CurrentDelivery } from "../components/delivery/CurrentDelivery";
+import { DeliveredState } from "../components/delivery/DeliveredState";
+import { DeliveryHeader } from "../components/delivery/DeliveryHeader";
+import { HistoryList } from "../components/delivery/HistoryList";
+import type { AuthSession } from "../hooks/useAuthSession";
+import { useDeliveries } from "../hooks/useDeliveries";
 import {
-  colors,
-  radius,
-  sizes,
-  spacing,
-  typography
-} from "@thigo/design-tokens";
-import { AuthError, createAuthClient, type AuthUser } from "@thigo/auth-client";
-const role = "DRIVER" as const;
-const key = "thigo.driver.session";
-const env = (
-  globalThis as { process?: { env?: { EXPO_PUBLIC_API_URL?: string } } }
-).process?.env;
-const client = createAuthClient({
-  baseUrl:
-    env?.EXPO_PUBLIC_API_URL ??
-    (Platform.OS === "android"
-      ? "http://10.0.2.2:3001"
-      : "http://localhost:3001"),
-  mode: "bearer"
-});
-const message = (e: unknown) =>
-  e instanceof AuthError && e.code === "forbidden"
-    ? "Tài khoản chưa được cấp quyền Tài xế."
-    : e instanceof AuthError && e.code === "invalid"
-      ? "Thông tin hoặc mã OTP không hợp lệ hoặc đã hết hạn."
-      : e instanceof AuthError && e.code === "unavailable"
-        ? "Dịch vụ mã xác thực tạm thời chưa sẵn sàng."
-        : "Không thể kết nối. Vui lòng thử lại.";
-export function HomeScreen() {
-  const [step, setStep] = useState<
-    "restoring" | "phone" | "otp" | "authenticated"
-  >("restoring");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [user, setUser] = useState<AuthUser>();
-  const [cooldown, setCooldown] = useState(0);
-  useEffect(() => {
-    void (async () => {
-      const token = await SecureStore.getItemAsync(key);
-      if (!token) return setStep("phone");
-      try {
-        const current = await client.getCurrentUser(token);
-        await client.checkAccess(role, token);
-        setUser(current);
-        setStep("authenticated");
-      } catch {
-        await SecureStore.deleteItemAsync(key);
-        setError("Phiên đăng nhập không còn hợp lệ.");
-        setStep("phone");
-      }
-    })();
-  }, []);
-  useEffect(() => {
-    if (!cooldown) return;
-    const timer = setInterval(
-      () => setCooldown((v) => Math.max(0, v - 1)),
-      1000
-    );
-    return () => clearInterval(timer);
-  }, [cooldown]);
-  const request = async () => {
-    if (!/^\+?[0-9 ]{9,15}$/.test(phone.trim()))
-      return setError("Vui lòng nhập số điện thoại hợp lệ.");
-    setBusy(true);
-    setError("");
-    try {
-      await client.requestOtp(phone, role);
-      setStep("otp");
-      setCooldown(30);
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setBusy(false);
+  deliverConfirmation,
+  deliveryStage,
+  formatClock
+} from "../utils/delivery";
+
+type Props = { session: AuthSession };
+
+/** Driver home: the current job when there is one, otherwise jobs to claim. */
+export function HomeScreen({ session }: Props) {
+  const { bottom } = useSafeAreaInsets();
+  const deliveries = useDeliveries();
+  const { overview, pending, delivered } = deliveries;
+  const current = overview?.current ?? null;
+  const stage = current ? deliveryStage(current.status) : null;
+  const job = current && stage && !delivered ? { current, stage } : null;
+  const updated = deliveries.updatedAt
+    ? formatClock(deliveries.updatedAt)
+    : null;
+  const headerStatus = !updated
+    ? "Đang tải…"
+    : deliveries.stale
+      ? `Mất kết nối · ${updated}`
+      : `Cập nhật lúc ${updated}`;
+
+  const runStageAction = () => {
+    if (!job) return;
+    const {
+      current: delivery,
+      stage: { action }
+    } = job;
+    if (action.kind === "pickup") deliveries.pickup(delivery.id);
+    if (action.kind === "deliver") {
+      const copy = deliverConfirmation(delivery);
+      Alert.alert(copy.title, copy.message, [
+        { text: "Chưa giao", style: "cancel" },
+        { text: copy.confirm, onPress: () => deliveries.deliver(delivery.id) }
+      ]);
     }
   };
-  const verify = async () => {
-    if (!/^\d{6}$/.test(otp)) return setError("Mã OTP gồm 6 chữ số.");
-    setBusy(true);
-    setError("");
-    try {
-      const result = await client.verifyOtp(phone, otp, role);
-      if (!result.token) throw new AuthError("unknown");
-      await client.checkAccess(role, result.token);
-      await SecureStore.setItemAsync(key, result.token);
-      setUser(result.user);
-      setStep("authenticated");
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-  const logout = async () => {
-    setBusy(true);
-    const token = await SecureStore.getItemAsync(key);
-    try {
-      await client.logout(token ?? undefined);
-    } catch {
-      setError("Đã đăng xuất trên thiết bị. Máy chủ hiện không khả dụng.");
-    } finally {
-      await SecureStore.deleteItemAsync(key);
-      setUser(undefined);
-      setOtp("");
-      setStep("phone");
-      setBusy(false);
-    }
-  };
-  if (step === "restoring")
-    return (
-      <SafeAreaView style={s.center}>
-        <ActivityIndicator color={colors.brand.primary} />
-        <Text style={s.help}>Đang kiểm tra phiên đăng nhập…</Text>
-      </SafeAreaView>
+
+  const logout = () => {
+    if (!current) return void session.logout();
+    Alert.alert(
+      "Đăng xuất khi đang có đơn?",
+      `Đơn ${current.code} vẫn được giữ cho bạn. Đăng nhập lại để tiếp tục giao.`,
+      [
+        { text: "Ở lại", style: "cancel" },
+        { text: "Đăng xuất", onPress: () => void session.logout() }
+      ]
     );
-  if (step === "authenticated")
-    return (
-      <SafeAreaView style={s.container}>
-        <View style={s.content}>
-          <Text style={s.title}>Xin chào Tài xế</Text>
-          <Text style={s.body}>Bạn đã đăng nhập vào Thigo.</Text>
-          <Text style={s.help}>{user?.phone}</Text>
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={() => void logout()}
-            style={s.secondary}
-          >
-            <Text style={s.secondaryText}>
-              {busy ? "Đang đăng xuất…" : "Đăng xuất"}
-            </Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
-  return (
-    <SafeAreaView style={s.container}>
-      <KeyboardAvoidingView
-        style={s.content}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <Text style={s.title}>
-          {step === "phone" ? "Đăng nhập Tài xế" : "Nhập mã xác thực"}
-        </Text>
-        <Text style={s.body}>
-          {step === "phone"
-            ? "Dùng số điện thoại đã được cấp quyền."
-            : `Mã OTP đã được gửi đến ${phone}.`}
-        </Text>
-        <Text style={s.label}>
-          {step === "phone" ? "Số điện thoại" : "Mã OTP"}
-        </Text>
-        <TextInput
-          accessibilityLabel={step === "phone" ? "Số điện thoại" : "Mã OTP"}
-          value={step === "phone" ? phone : otp}
-          onChangeText={
-            step === "phone"
-              ? setPhone
-              : (v) => setOtp(v.replace(/\D/g, "").slice(0, 6))
-          }
-          keyboardType="phone-pad"
-          maxLength={step === "otp" ? 6 : 16}
-          style={s.input}
+  };
+
+  const body = () => {
+    if (delivered)
+      return (
+        <DeliveredState
+          delivery={delivered}
+          onDone={deliveries.dismissDelivered}
         />
-        {error ? (
-          <Text accessibilityRole="alert" style={s.error}>
-            {error}
-          </Text>
-        ) : null}
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => void (step === "phone" ? request() : verify())}
-          style={[s.primary, busy && s.disabled]}
+      );
+    if (!overview) {
+      if (deliveries.status === "error")
+        return (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle} accessibilityRole="header">
+              Chưa tải được đơn giao
+            </Text>
+            <Text style={styles.body}>{deliveries.error}</Text>
+            <Button label="Thử lại" prominent onPress={deliveries.reload} />
+          </View>
+        );
+      return (
+        <View
+          style={styles.loading}
+          accessible
+          accessibilityLabel="Đang tải đơn giao"
         >
-          <Text style={s.primaryText}>
-            {busy
-              ? "Đang xử lý…"
-              : step === "phone"
-                ? "Gửi mã OTP"
-                : "Đăng nhập"}
-          </Text>
-        </Pressable>
-        {step === "otp" ? (
-          <>
-            <Pressable
-              disabled={busy || cooldown > 0}
-              onPress={() => void request()}
-              style={s.link}
-            >
-              <Text style={s.linkText}>
-                {cooldown ? `Gửi lại sau ${cooldown} giây` : "Gửi lại mã OTP"}
-              </Text>
-            </Pressable>
-            <Pressable
-              disabled={busy}
-              onPress={() => {
-                setStep("phone");
-                setOtp("");
-                setError("");
-              }}
-              style={s.link}
-            >
-              <Text style={s.linkText}>Sửa số điện thoại</Text>
-            </Pressable>
-          </>
+          {[0, 1].map((key) => (
+            <View key={key} style={styles.card}>
+              <Placeholder width="40%" height={20} rounded="small" />
+              <Placeholder height={48} />
+              <Placeholder height={56} />
+            </View>
+          ))}
+        </View>
+      );
+    }
+    if (job)
+      return <CurrentDelivery delivery={job.current} stage={job.stage} />;
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          {overview.available.length
+            ? `Đơn cần giao (${overview.available.length})`
+            : "Đơn cần giao"}
+        </Text>
+        {overview.available.length ? (
+          overview.available.map((delivery) => (
+            <AvailableCard
+              key={delivery.id}
+              delivery={delivery}
+              loading={pending?.id === delivery.id}
+              disabled={pending !== undefined}
+              onClaim={() => deliveries.claim(delivery.id)}
+            />
+          ))
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>
+              Chưa có đơn cần giao. Đơn mới sẽ tự hiện ở đây.
+            </Text>
+            {updated ? (
+              <Text style={styles.caption}>Cập nhật lúc {updated}</Text>
+            ) : null}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style="light" />
+      <DeliveryHeader status={headerStatus} />
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: job ? spacing.lg : bottom + spacing.xl }
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={deliveries.refreshing}
+            onRefresh={deliveries.refresh}
+            colors={[colors.brand.primary]}
+            tintColor={colors.brand.primary}
+          />
+        }
+      >
+        {deliveries.notice ? (
+          <Notice message={deliveries.notice} tone="warning" />
         ) : null}
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        {body()}
+        {overview && !job && !delivered ? (
+          <HistoryList deliveries={overview.history} />
+        ) : null}
+        <View style={styles.account}>
+          <AccountRow
+            phone={session.user?.phone}
+            busy={session.busy}
+            onLogout={logout}
+          />
+        </View>
+      </ScrollView>
+      {job ? (
+        <ActionBar
+          action={job.stage.action}
+          loading={pending?.id === job.current.id}
+          onPress={runStageAction}
+        />
+      ) : null}
+    </View>
   );
 }
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface.primary },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.surface.secondary },
+  flex: { flex: 1 },
+  scroll: {
+    flexGrow: 1,
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    gap: spacing.md
+  },
+  section: { gap: spacing.sm },
+  sectionTitle: { ...typography.role.sectionTitle, color: colors.text.primary },
+  loading: { gap: spacing.sm },
+  card: {
     gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.large,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
     backgroundColor: colors.surface.primary
   },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    padding: spacing.md,
-    gap: spacing.sm
+  cardTitle: { ...typography.role.itemTitle, color: colors.text.primary },
+  body: { ...typography.role.body, color: colors.text.secondary },
+  caption: {
+    ...typography.role.caption,
+    color: colors.text.secondary,
+    fontVariant: ["tabular-nums"]
   },
-  title: { ...typography.role.screenTitle, color: colors.text.primary },
-  body: {
-    ...typography.role.body,
-    color: colors.text.primary,
-    marginBottom: spacing.sm
-  },
-  help: { ...typography.role.bodySecondary, color: colors.text.secondary },
-  label: { ...typography.role.label, color: colors.text.primary },
-  input: {
-    height: sizes.control.input,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: radius.medium,
-    paddingHorizontal: spacing.md,
-    ...typography.role.body,
-    color: colors.text.primary
-  },
-  error: { ...typography.role.bodySecondary, color: colors.status.danger },
-  primary: {
-    height: sizes.control.standard,
-    borderRadius: radius.medium,
-    backgroundColor: colors.brand.primary,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  disabled: { backgroundColor: colors.action.disabled },
-  primaryText: { ...typography.role.label, color: colors.text.inverse },
-  secondary: {
-    height: sizes.control.standard,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: radius.medium,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: spacing.md
-  },
-  secondaryText: { ...typography.role.label, color: colors.text.primary },
-  link: {
-    minHeight: sizes.touchTarget.recommended,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  linkText: {
-    ...typography.role.label,
-    color: colors.text.link,
-    textDecorationLine: "underline"
-  }
+  account: { marginTop: "auto", paddingTop: spacing.lg }
 });
