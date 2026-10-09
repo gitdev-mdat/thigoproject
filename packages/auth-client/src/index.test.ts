@@ -144,3 +144,91 @@ describe("auth client", () => {
     });
   });
 });
+
+describe("DEV quick login", () => {
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status });
+  const offer = {
+    otp: "000000",
+    accounts: [{ phone: "0860000004", label: "Quản trị viên" }]
+  };
+
+  it("reads the offer for one application", async () => {
+    const fetch = vi.fn().mockResolvedValue(json(offer));
+    const client = createAuthClient({
+      baseUrl: "http://api",
+      mode: "cookie",
+      fetch
+    });
+    await expect(client.getQuickLoginOffer("ADMIN")).resolves.toEqual(offer);
+    expect(fetch.mock.calls[0]![0]).toBe(
+      "http://api/auth/dev/quick-login?application=ADMIN"
+    );
+  });
+
+  it("hides the shortcut when the API does not offer it", async () => {
+    const fetch = vi.fn().mockResolvedValue(json({}, 404));
+    const client = createAuthClient({
+      baseUrl: "http://api",
+      mode: "cookie",
+      fetch
+    });
+    await expect(client.getQuickLoginOffer("ADMIN")).resolves.toBeNull();
+  });
+
+  it("signs in through the normal OTP request and verify endpoints", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(json({ accepted: true }))
+      .mockResolvedValueOnce(
+        json({ user: { id: "1", phone: "+84860000004", roles: ["ADMIN"] } })
+      );
+    const client = createAuthClient({
+      baseUrl: "http://api",
+      mode: "cookie",
+      fetch
+    });
+    await client.quickLogin(offer.accounts[0]!, offer, "ADMIN");
+    expect(fetch.mock.calls.map((call) => call[0])).toEqual([
+      "http://api/auth/otp/request",
+      "http://api/auth/otp/verify"
+    ]);
+    expect(JSON.parse(fetch.mock.calls[1]![1].body)).toEqual({
+      phone: "0860000004",
+      otp: "000000",
+      application: "ADMIN"
+    });
+  });
+
+  it("still verifies a code that is already pending", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(json({ message: "cooldown" }, 400))
+      .mockResolvedValueOnce(
+        json({ user: { id: "1", phone: "+84", roles: ["ADMIN"] } })
+      );
+    const client = createAuthClient({
+      baseUrl: "http://api",
+      mode: "cookie",
+      fetch
+    });
+    await expect(
+      client.quickLogin(offer.accounts[0]!, offer, "ADMIN")
+    ).resolves.toBeDefined();
+  });
+
+  it("surfaces a refused sign-in from the server", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(json({ accepted: true }))
+      .mockResolvedValueOnce(json({}, 403));
+    const client = createAuthClient({
+      baseUrl: "http://api",
+      mode: "cookie",
+      fetch
+    });
+    await expect(
+      client.quickLogin(offer.accounts[0]!, offer, "ADMIN")
+    ).rejects.toMatchObject({ code: "forbidden" });
+  });
+});

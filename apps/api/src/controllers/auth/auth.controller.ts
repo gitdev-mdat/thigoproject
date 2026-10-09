@@ -4,8 +4,10 @@ import {
   ForbiddenException,
   Get,
   Headers,
+  NotFoundException,
   Param,
   Post,
+  Query,
   Res,
   UnauthorizedException
 } from "@nestjs/common";
@@ -56,6 +58,12 @@ export class AuthController {
       phone: session.user.phone,
       roles: session.user.roles.map((item) => item.role)
     };
+  }
+  /** Development-only: seeded accounts that may use the normal test OTP. */
+  @Get("dev/quick-login") quickLogin(@Query("application") application = "") {
+    const accounts = this.auth.quickLoginAccounts(application);
+    if (!accounts.length) throw new NotFoundException();
+    return { otp: "000000", accounts };
   }
   @Get("access/:role") async access(
     @Param("role") role: string,

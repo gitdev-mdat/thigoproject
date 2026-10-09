@@ -108,6 +108,23 @@ with the matching development account:
 | Merchant | 0860000005 | no store yet: first-run setup |
 | Admin    | 0860000004 |                               |
 
+With fixtures on, every sign-in screen (Admin web, Customer, Merchant, Driver)
+also shows **Đăng nhập nhanh (DEV)** buttons for these accounts. The API lists
+them at `GET /auth/dev/quick-login?application=ROLE` only when
+`NODE_ENV=development` (or `test`), `THIGO_ENABLE_DEV_FIXTURES=true` and
+`OTP_PROVIDER=test`; otherwise it answers 404 and the buttons stay hidden. A
+quick login still goes through the normal OTP request and verify endpoints, so
+the server's role check decides access exactly as for a typed number.
+
+The seed also adds activity for the Admin dashboard: customers 0860000011–14,
+drivers 0860000202–205 and two weeks of orders in every state. None of it
+touches the regression accounts above, whose live order queues stay empty.
+
+Open the Admin web with `pnpm dev:admin` (http://localhost:3000). Its pages
+read the ADMIN-only `/admin/overview`, `/admin/stores`, `/admin/orders`,
+`/admin/users` and `/admin/drivers` endpoints; changes such as hiding a store
+or locking an account are not offered yet.
+
 ### Merchant accounts and storefront onboarding
 
 These are two separate steps. **Account provisioning** decides who may sign in

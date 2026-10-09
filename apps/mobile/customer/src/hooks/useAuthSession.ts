@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AuthError, type AuthUser } from "@thigo/auth-client";
+import {
+  AuthError,
+  type AuthUser,
+  type QuickLoginAccount,
+  type QuickLoginOffer
+} from "@thigo/auth-client";
 
 import {
   APP_ROLE,
@@ -23,6 +28,12 @@ export function useAuthSession() {
   const [user, setUser] = useState<AuthUser>();
   const [cooldown, setCooldown] = useState(0);
   const verifying = useRef(false);
+  // Offered by the API only in local development with fixtures on.
+  const [quickLogin, setQuickLogin] = useState<QuickLoginOffer | null>(null);
+
+  useEffect(() => {
+    void authClient.getQuickLoginOffer(APP_ROLE).then(setQuickLogin);
+  }, []);
 
   const restore = useCallback(async () => {
     setStep("restoring");
@@ -126,6 +137,35 @@ export function useAuthSession() {
     [verify]
   );
 
+  /** DEV quick login: the normal OTP sign-in for a seeded account. */
+  const signInQuickly = useCallback(
+    async (account: QuickLoginAccount) => {
+      if (!quickLogin || verifying.current) return;
+      verifying.current = true;
+      setBusy(true);
+      setError("");
+      try {
+        const result = await authClient.quickLogin(
+          account,
+          quickLogin,
+          APP_ROLE
+        );
+        if (!result.token) throw new AuthError("unknown");
+        await authClient.checkAccess(APP_ROLE, result.token);
+        await sessionStore.write(result.token);
+        setPhone(account.phone);
+        setUser(result.user);
+        setStep("authenticated");
+      } catch (e) {
+        setError(authErrorMessage(e, "verify"));
+      } finally {
+        verifying.current = false;
+        setBusy(false);
+      }
+    },
+    [quickLogin]
+  );
+
   const changePhone = useCallback(() => {
     setStep("phone");
     setOtpValue("");
@@ -167,7 +207,9 @@ export function useAuthSession() {
     verify: () => verify(otp),
     changePhone,
     logout,
-    retryRestore: restore
+    retryRestore: restore,
+    quickLogin,
+    signInQuickly
   };
 }
 

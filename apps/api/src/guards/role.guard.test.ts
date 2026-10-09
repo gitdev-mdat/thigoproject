@@ -12,9 +12,12 @@ import { RoleGuard } from "./role.guard.js";
 function setup(
   required: ApplicationRole | undefined,
   roles: ApplicationRole[],
-  authorization?: string
+  authorization?: string,
+  cookie?: string
 ) {
-  const request: Record<string, unknown> = { headers: { authorization } };
+  const request: Record<string, unknown> = {
+    headers: { authorization, cookie }
+  };
   const context = {
     getHandler: () => undefined,
     getClass: () => undefined,
@@ -76,5 +79,76 @@ describe("RoleGuard", () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(authenticate).toHaveBeenCalledWith("abc");
     expect(request.thigoUser).toEqual({ id: "u1", phone: "+84860000001" });
+  });
+
+  it("accepts the admin cookie on ADMIN routes", async () => {
+    const { guard, context, authenticate } = setup(
+      ApplicationRole.ADMIN,
+      [ApplicationRole.ADMIN],
+      undefined,
+      "theme=light; thigo_admin_session=cookie-token"
+    );
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(authenticate).toHaveBeenCalledWith("cookie-token");
+  });
+
+  it("ignores the admin cookie on every other route", async () => {
+    for (const role of [
+      ApplicationRole.CUSTOMER,
+      ApplicationRole.MERCHANT,
+      ApplicationRole.DRIVER
+    ]) {
+      const { guard, context, authenticate } = setup(
+        role,
+        [role, ApplicationRole.ADMIN],
+        undefined,
+        "thigo_admin_session=cookie-token"
+      );
+      await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+        UnauthorizedException
+      );
+      expect(authenticate).not.toHaveBeenCalled();
+    }
+  });
+
+  it("still requires the ADMIN role for a cookie session", async () => {
+    const { guard, context } = setup(
+      ApplicationRole.ADMIN,
+      [ApplicationRole.CUSTOMER, ApplicationRole.MERCHANT],
+      undefined,
+      "thigo_admin_session=cookie-token"
+    );
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      ForbiddenException
+    );
+  });
+
+  it.each(["thigo_admin_session=", "thigo_admin_session=%E0%A4%A", "other=x"])(
+    "rejects a missing or malformed admin cookie (%s)",
+    async (cookie) => {
+      const { guard, context, authenticate } = setup(
+        ApplicationRole.ADMIN,
+        [ApplicationRole.ADMIN],
+        undefined,
+        cookie
+      );
+      await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+        UnauthorizedException
+      );
+      expect(authenticate).not.toHaveBeenCalled();
+    }
+  );
+
+  it("rejects an empty bearer token without a lookup", async () => {
+    const { guard, context, authenticate } = setup(
+      ApplicationRole.ADMIN,
+      [ApplicationRole.ADMIN],
+      "Bearer ",
+      "thigo_admin_session=cookie-token"
+    );
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      UnauthorizedException
+    );
+    expect(authenticate).not.toHaveBeenCalled();
   });
 });

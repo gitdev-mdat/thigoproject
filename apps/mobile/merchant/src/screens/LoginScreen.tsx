@@ -137,6 +137,23 @@ export function LoginScreen({ session }: Props) {
                   onPress={() => void session.requestOtp()}
                 />
                 <Text style={styles.footer}>{copy.footer}</Text>
+                {session.quickLogin?.accounts.length ? (
+                  <View style={styles.devLogin}>
+                    <Text style={styles.devTag}>
+                      DEV · Chỉ có khi chạy cục bộ với dữ liệu mẫu
+                    </Text>
+                    {session.quickLogin.accounts.map((account) => (
+                      <Button
+                        key={account.phone}
+                        variant="secondary"
+                        label={`Đăng nhập nhanh (DEV) · ${account.label}`}
+                        loadingLabel="Đang đăng nhập…"
+                        loading={session.busy}
+                        onPress={() => void session.signInQuickly(account)}
+                      />
+                    ))}
+                  </View>
+                ) : null}
               </>
             )}
           </View>
@@ -193,6 +210,16 @@ const styles = StyleSheet.create({
     gap: spacing.xxs
   },
   help: { ...typography.role.bodySecondary, color: colors.text.secondary },
+  devLogin: {
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.medium,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.border.default,
+    backgroundColor: colors.status.warningBackground
+  },
+  devTag: { ...typography.role.caption, color: colors.status.warning },
   footer: {
     ...typography.role.bodySecondary,
     color: colors.text.secondary,

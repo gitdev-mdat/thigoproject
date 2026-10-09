@@ -1,5 +1,9 @@
 export type ApplicationRole = "CUSTOMER" | "MERCHANT" | "DRIVER" | "ADMIN";
 export type AuthUser = { id: string; phone: string; roles: ApplicationRole[] };
+/** A seeded development account offered by the DEV quick login. */
+export type QuickLoginAccount = { phone: string; label: string };
+export type QuickLoginOffer = { otp: string; accounts: QuickLoginAccount[] };
+
 export type AuthErrorCode =
   | "invalid"
   | "unauthorized"
@@ -89,17 +93,56 @@ export function createAuthClient(options: Options) {
       clearTimeout(timer);
     }
   };
+  const requestOtp = (phone: string, application: ApplicationRole) =>
+    request<{ accepted: true }>("/auth/otp/request", {
+      method: "POST",
+      body: JSON.stringify({ phone, application })
+    });
+  const verifyOtp = (
+    phone: string,
+    otp: string,
+    application: ApplicationRole
+  ) =>
+    request<{ token?: string; user: AuthUser }>("/auth/otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ phone, otp, application })
+    });
   return {
-    requestOtp: (phone: string, application: ApplicationRole) =>
-      request<{ accepted: true }>("/auth/otp/request", {
-        method: "POST",
-        body: JSON.stringify({ phone, application })
-      }),
-    verifyOtp: (phone: string, otp: string, application: ApplicationRole) =>
-      request<{ token?: string; user: AuthUser }>("/auth/otp/verify", {
-        method: "POST",
-        body: JSON.stringify({ phone, otp, application })
-      }),
+    /**
+     * Seeded accounts for the DEV quick login, or null when the API does not
+     * offer it (anything other than local development with fixtures on).
+     */
+    getQuickLoginOffer: async (
+      application: ApplicationRole
+    ): Promise<QuickLoginOffer | null> => {
+      try {
+        return await request<QuickLoginOffer>(
+          `/auth/dev/quick-login?application=${application}`
+        );
+      } catch {
+        return null;
+      }
+    },
+    /**
+     * Signs in a quick login account through the normal OTP endpoints. A code
+     * may already be pending from an earlier tap, so a refused request still
+     * tries to verify; the server decides whether the account may enter.
+     */
+    quickLogin: async (
+      account: QuickLoginAccount,
+      offer: QuickLoginOffer,
+      application: ApplicationRole
+    ) => {
+      try {
+        await requestOtp(account.phone, application);
+      } catch (error) {
+        if (!(error instanceof AuthError) || error.code !== "invalid")
+          throw error;
+      }
+      return verifyOtp(account.phone, offer.otp, application);
+    },
+    requestOtp,
+    verifyOtp,
     getCurrentUser: (token?: string) =>
       request<AuthUser>("/auth/me", {}, token),
     checkAccess: (role: ApplicationRole, token?: string) =>

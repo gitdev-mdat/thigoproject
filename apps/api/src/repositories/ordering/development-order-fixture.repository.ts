@@ -20,6 +20,45 @@ import type {
 
 const DELIVERY_FEE_VND = 15000;
 
+/** The forward path an order walks; terminal REJECTED/CANCELLED leave it early. */
+const PROGRESSION = [
+  OrderStatus.PENDING,
+  OrderStatus.ACCEPTED,
+  OrderStatus.PREPARING,
+  OrderStatus.READY_FOR_PICKUP,
+  OrderStatus.PICKED_UP,
+  OrderStatus.DELIVERED
+];
+
+/**
+ * Lifecycle timestamps for a fixture, offset in minutes from placement, so
+ * every seeded order looks as if it went through the real transitions.
+ */
+export function fixtureTimeline(
+  status: OrderStatus,
+  placedAt: Date,
+  hasDriver: boolean
+) {
+  const at = (minutes: number) =>
+    new Date(placedAt.getTime() + minutes * 60_000);
+  const reached = (stage: OrderStatus) =>
+    PROGRESSION.indexOf(status) >= PROGRESSION.indexOf(stage);
+  return {
+    acceptedAt: reached(OrderStatus.ACCEPTED) ? at(2) : null,
+    preparingAt: reached(OrderStatus.PREPARING) ? at(4) : null,
+    readyAt: reached(OrderStatus.READY_FOR_PICKUP) ? at(15) : null,
+    assignedAt: hasDriver ? at(6) : null,
+    pickedUpAt: reached(OrderStatus.PICKED_UP) ? at(18) : null,
+    deliveredAt: reached(OrderStatus.DELIVERED) ? at(34) : null,
+    closedAt:
+      status === OrderStatus.REJECTED
+        ? at(3)
+        : status === OrderStatus.CANCELLED
+          ? at(1)
+          : null
+  };
+}
+
 /** Writes development addresses and past orders inside the caller's transaction. */
 export class DevelopmentOrderFixtureRepository implements DevelopmentOrderWriter {
   constructor(private readonly manager: EntityManager) {}
@@ -71,7 +110,7 @@ export class DevelopmentOrderFixtureRepository implements DevelopmentOrderWriter
 
   async ensureHistoricOrder(
     customer: { id: string; phone: string },
-    driverId: string,
+    driverId: string | null,
     address: { label: string; line: string; note: string | null },
     fixture: OrderHistoryFixture
   ): Promise<void> {
@@ -97,15 +136,19 @@ export class DevelopmentOrderFixtureRepository implements DevelopmentOrderWriter
       0
     );
     const placedAt = new Date(Date.now() - fixture.daysAgo * 86_400_000);
-    const at = (minutes: number) =>
-      new Date(placedAt.getTime() + minutes * 60_000);
-    const delivered = fixture.status === OrderStatus.DELIVERED;
+    // History keeps its original rule: only delivered orders had a driver.
+    const driverUserId =
+      fixture.customerPhone === undefined
+        ? fixture.status === OrderStatus.DELIVERED
+          ? driverId
+          : null
+        : driverId;
     const order = await orders.save(
       orders.create({
         code: `TGDEV${fixture.key.slice(-3)}`,
         customerUserId: customer.id,
         storeId: store.id,
-        driverUserId: delivered ? driverId : null,
+        driverUserId,
         status: fixture.status,
         paymentMethod: PaymentMethod.COD,
         subtotalVnd,
@@ -119,13 +162,7 @@ export class DevelopmentOrderFixtureRepository implements DevelopmentOrderWriter
         idempotencyKey: fixture.key,
         rejectReason: fixture.rejectReason ?? null,
         placedAt,
-        acceptedAt: delivered ? at(2) : null,
-        preparingAt: delivered ? at(4) : null,
-        readyAt: delivered ? at(15) : null,
-        assignedAt: delivered ? at(6) : null,
-        pickedUpAt: delivered ? at(18) : null,
-        deliveredAt: delivered ? at(34) : null,
-        closedAt: delivered ? null : at(3)
+        ...fixtureTimeline(fixture.status, placedAt, driverUserId !== null)
       })
     );
     await this.manager.getRepository(OrderItem).save(
