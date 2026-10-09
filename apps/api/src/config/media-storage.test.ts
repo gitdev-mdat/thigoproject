@@ -1,6 +1,6 @@
 import { mkdtemp, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   assertMediaStorageWritable,
@@ -23,7 +23,7 @@ describe("media storage directory", () => {
         NODE_ENV: "production",
         MEDIA_STORAGE_DIR: "/var/lib/thigo/media"
       })
-    ).toBe("/var/lib/thigo/media");
+    ).toBe(resolve("/var/lib/thigo/media"));
     expect(readMediaStorageDirectory({ NODE_ENV: "development" })).toMatch(
       /storage[\\/]media$/
     );

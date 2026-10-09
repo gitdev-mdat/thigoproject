@@ -26,9 +26,28 @@ pnpm dev:api
 
 `pnpm dev` starts every app in parallel. The API defaults to `http://localhost:3001`; its health endpoint is `GET /health`.
 
+## Daily local startup
+
+Local development uses the PostgreSQL service in `compose.yaml` (Docker Desktop). The first time, copy `apps/api/.env.example` to `apps/api/.env` and opt in to the development fixtures described below. Then, each day from the repository root:
+
+```sh
+# 1. Start Docker Desktop, then:
+pnpm db:up          # PostgreSQL 18 on localhost:5432, data kept in a named volume
+pnpm db:migrate     # applies only pending migrations; run after every pull
+pnpm dev:seed       # only with fixtures enabled; idempotent, safe to repeat
+pnpm dev:api        # NestJS on http://localhost:3001 (10.0.2.2:3001 from the Android Emulator)
+pnpm dev:customer   # or dev:merchant / dev:driver
+```
+
+`pnpm dev:api`, `pnpm db:migrate` and `pnpm dev:seed` all read `DATABASE_URL` from `apps/api/.env`, so they always target the same database; a `DATABASE_URL` set in the shell takes precedence over the file. With `NODE_ENV=development` they refuse any database that is not on `localhost`, `127.0.0.1` or `[::1]`, so local work cannot reach a hosted database by accident. Set `THIGO_ALLOW_REMOTE_DEV_DATABASE=true` only when you mean to point development at a remote database. `pnpm db:migration:show` lists applied (`[X]`) and pending (`[ ]`) migrations, and the API logs any pending migrations by name when it connects.
+
+Run `pnpm dev:seed` before `pnpm dev:api`. The seed rebuilds `apps/api/dist`, so if you re-seed while the API is running, restart `pnpm dev:api` afterwards.
+
+`pnpm db:down` stops the container without deleting its volume. Never run `docker compose down -v` unless you intend to erase the local database.
+
 ## Database
 
-Copy `apps/api/.env.example` to `apps/api/.env`, or provide `DATABASE_URL` through the process environment. The URL can point to the optional local PostgreSQL service, Supabase-managed PostgreSQL, or another PostgreSQL provider.
+Outside local development, `DATABASE_URL` can point to Supabase-managed PostgreSQL or another PostgreSQL provider, provided through `apps/api/.env` or the process environment.
 
 ```sh
 pnpm db:up
