@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
@@ -47,6 +47,8 @@ import {
   storeCategoryLabel,
   toLocalPhone
 } from "../../utils/storefront";
+import { DiscardChangesSheet } from "../../components/DiscardChangesSheet";
+import { StatusBarScrim } from "../../components/StatusBarScrim";
 
 type Props = { session: AuthSession };
 type Mode = "status" | "form" | "review";
@@ -112,6 +114,16 @@ export function ApplicantScreen({ session }: Props) {
     tone: "success" | "danger";
   }>();
   const [accountOpen, setAccountOpen] = useState(false);
+  // The form as it was opened, to ask before leaving with unsaved edits.
+  const [baseline, setBaseline] = useState<ApplicationDraft>(draft);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const dirty =
+    mode === "form" && JSON.stringify(draft) !== JSON.stringify(baseline);
+  const leaveForm = () => {
+    if (busy) return;
+    if (dirty) return setConfirmLeave(true);
+    setMode("status");
+  };
   // Only stable callbacks: the session object changes on every countdown tick.
   const { refreshAccess, logout } = session;
 
@@ -145,13 +157,17 @@ export function ApplicantScreen({ session }: Props) {
     if (view === "merchant") void refreshAccess();
   }, [view, refreshAccess]);
 
+  const leaveFormRef = useRef(leaveForm);
+  leaveFormRef.current = leaveForm;
+
   // Android back leaves the form or review before it leaves the app.
   useEffect(() => {
     if (mode === "status") return;
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
-        setMode(mode === "review" ? "form" : "status");
+        if (mode === "review") setMode("form");
+        else leaveFormRef.current();
         return true;
       }
     );
@@ -159,7 +175,9 @@ export function ApplicantScreen({ session }: Props) {
   }, [mode]);
 
   const openForm = () => {
-    setDraft(applicationDraft(mine?.application ?? null));
+    const opened = applicationDraft(mine?.application ?? null);
+    setDraft(opened);
+    setBaseline(opened);
     setErrors({});
     setMessage(undefined);
     setMode("form");
@@ -187,6 +205,7 @@ export function ApplicantScreen({ session }: Props) {
       return false;
     }
     setMine(result.value);
+    setBaseline(draft);
     return true;
   };
 
@@ -290,7 +309,7 @@ export function ApplicantScreen({ session }: Props) {
           label="Quay lại"
           variant="tertiary"
           disabled={!!busy}
-          onPress={() => setMode("status")}
+          onPress={leaveForm}
         />
       </>
     );
@@ -362,6 +381,15 @@ export function ApplicantScreen({ session }: Props) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <StatusBarScrim color={colors.surface.inverse} />
+      <DiscardChangesSheet
+        visible={confirmLeave}
+        onStay={() => setConfirmLeave(false)}
+        onDiscard={() => {
+          setConfirmLeave(false);
+          setMode("status");
+        }}
+      />
       <AccountSheet
         visible={accountOpen}
         phone={phone}

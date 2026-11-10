@@ -27,6 +27,7 @@ import {
   type StoreProfileDraft,
   type StoreProfileErrors
 } from "../../utils/storefront";
+import { StatusBarScrim } from "../../components/StatusBarScrim";
 
 type Props = {
   session: AuthSession;
@@ -132,6 +133,7 @@ export function StoreSetupScreen({ session, storefront, onCreated }: Props) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <StatusBarScrim color={colors.surface.inverse} />
       <AccountSheet
         visible={accountOpen}
         phone={phone}

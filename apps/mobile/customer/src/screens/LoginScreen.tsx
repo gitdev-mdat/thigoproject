@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   BackHandler,
+  Keyboard,
   KeyboardAvoidingView,
-  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -48,13 +48,23 @@ export function LoginScreen({ session }: Props) {
     );
     return () => subscription.remove();
   }, [isOtp, changePhone]);
+
+  // Edge-to-edge Android does not resize the window for the keyboard. On a
+  // small phone the hero alone fills what is left, so bring the form (field
+  // and main button) to the top of the visible area when the keyboard opens.
+  const scrollRef = useRef<ScrollView>(null);
+  const formY = useRef(0);
+  useEffect(() => {
+    const subscription = Keyboard.addListener("keyboardDidShow", () =>
+      scrollRef.current?.scrollTo({ y: formY.current, animated: true })
+    );
+    return () => subscription.remove();
+  }, []);
   return (
     <SafeAreaView style={styles.screen}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           bounces={false}
@@ -71,7 +81,12 @@ export function LoginScreen({ session }: Props) {
             </View>
           </View>
 
-          <View style={styles.form}>
+          <View
+            style={styles.form}
+            onLayout={(event) => {
+              formY.current = event.nativeEvent.layout.y;
+            }}
+          >
             {session.notice ? <Notice message={session.notice} /> : null}
             {isOtp ? (
               <>

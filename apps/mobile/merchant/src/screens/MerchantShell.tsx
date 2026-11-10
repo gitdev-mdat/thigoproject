@@ -192,7 +192,11 @@ export function MerchantShell({ session, storefront, justCreated }: Props) {
         onDismiss={dismissToast}
         offset={
           onTabs
-            ? tabBarHeight + spacing.sm
+            ? // On Thực đơn the toast sits above the floating "Thêm món" button.
+              tabBarHeight +
+              (tab === "menu"
+                ? spacing.md + sizes.control.prominent + spacing.sm
+                : spacing.sm)
             : bottom + sizes.control.prominent + spacing.xl
         }
       />

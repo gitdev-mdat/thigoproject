@@ -53,7 +53,7 @@ export function CustomerApp({ session }: Props) {
 function Shell({ session }: Props) {
   const [tab, setTab] = useState<Tab>("home");
   const stack = useScreenStack<Route>(ROOT);
-  const home = useCustomerHome();
+  const home = useCustomerHome(tab === "home" && stack.depth === 1);
   const { cart, count, dispatch } = useCart();
   const { push, pop, reset } = stack;
 

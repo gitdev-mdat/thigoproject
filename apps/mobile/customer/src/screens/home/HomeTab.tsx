@@ -20,6 +20,7 @@ import { SectionHeader } from "../../components/home/SectionHeader";
 import { StoreCard } from "../../components/home/StoreCard";
 import type { CustomerHome } from "../../hooks/useCustomerHome";
 import type { StoreCategory } from "../../types/catalog";
+import { StatusBarScrim } from "../../components/StatusBarScrim";
 
 const storesTitle: Record<StoreCategory, string> = {
   FOOD: "Quán ăn",
@@ -55,65 +56,68 @@ export function HomeTab({
   const { top } = useSafeAreaInsets();
   const searching = data.query.trim().length > 0;
   return (
-    <ScrollView
-      contentContainerStyle={styles.scroll}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
-    >
-      <View style={[styles.header, { paddingTop: top + spacing.sm }]}>
-        <View style={styles.topRow}>
-          <View style={styles.flex}>{addressSlot}</View>
-          <IconButton
-            icon="bag"
-            label="Giỏ hàng"
-            badge={cartCount}
-            tone="floating"
-            onPress={onOpenCart}
-          />
-        </View>
-        <Text style={styles.title} accessibilityRole="header">
-          Hôm nay bạn muốn ăn gì?
-        </Text>
-      </View>
-
-      <View style={styles.searchWrap}>
-        <SearchBar value={data.query} onChangeText={data.setQuery} />
-      </View>
-
-      <View style={styles.content}>
-        {data.status === "error" ? (
-          <ErrorCard onRetry={data.reload} />
-        ) : searching ? (
-          <SearchResults data={data} onOpenStore={onOpenStore} />
-        ) : (
-          <>
-            {data.status === "loading" ? (
-              <View style={styles.tilePlaceholders}>
-                {[0, 1, 2].map((key) => (
-                  <View key={key} style={styles.flex}>
-                    <Placeholder height={112} rounded="large" />
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <CategoryTiles
-                shortcuts={data.shortcuts}
-                active={data.category}
-                onSelect={(category) => void data.selectCategory(category)}
-              />
-            )}
-
-            <RecentOrdersEntry
-              title={recentOrders.title}
-              detail={recentOrders.detail}
-              onPress={onOpenOrders}
+    <View style={styles.flex}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <View style={[styles.header, { paddingTop: top + spacing.sm }]}>
+          <View style={styles.topRow}>
+            <View style={styles.flex}>{addressSlot}</View>
+            <IconButton
+              icon="bag"
+              label="Giỏ hàng"
+              badge={cartCount}
+              tone="floating"
+              onPress={onOpenCart}
             />
+          </View>
+          <Text style={styles.title} accessibilityRole="header">
+            Hôm nay bạn muốn ăn gì?
+          </Text>
+        </View>
 
-            <Recommendations data={data} onOpenStore={onOpenStore} />
-          </>
-        )}
-      </View>
-    </ScrollView>
+        <View style={styles.searchWrap}>
+          <SearchBar value={data.query} onChangeText={data.setQuery} />
+        </View>
+
+        <View style={styles.content}>
+          {data.status === "error" ? (
+            <ErrorCard onRetry={data.reload} />
+          ) : searching ? (
+            <SearchResults data={data} onOpenStore={onOpenStore} />
+          ) : (
+            <>
+              {data.status === "loading" ? (
+                <View style={styles.tilePlaceholders}>
+                  {[0, 1, 2].map((key) => (
+                    <View key={key} style={styles.flex}>
+                      <Placeholder height={112} rounded="large" />
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <CategoryTiles
+                  shortcuts={data.shortcuts}
+                  active={data.category}
+                  onSelect={(category) => void data.selectCategory(category)}
+                />
+              )}
+
+              <RecentOrdersEntry
+                title={recentOrders.title}
+                detail={recentOrders.detail}
+                onPress={onOpenOrders}
+              />
+
+              <Recommendations data={data} onOpenStore={onOpenStore} />
+            </>
+          )}
+        </View>
+      </ScrollView>
+      <StatusBarScrim color={colors.brand.primarySubtle} />
+    </View>
   );
 }
 

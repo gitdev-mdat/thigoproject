@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { catalogApi } from "../services/catalog";
+import { isActive } from "../utils/orderStatus";
+import { usePolling } from "./usePolling";
 import type { Address, OrderSummary } from "../types/orders";
 import type {
   HomeShortcut,
@@ -11,7 +13,14 @@ import type {
 
 type Status = "loading" | "ready" | "error";
 
-export function useCustomerHome() {
+const ORDER_POLL_MS = 5000;
+
+/**
+ * `visible` is true while the Home tab is on screen. Returning to it refreshes
+ * the address and latest order, and an order still in progress is polled like
+ * the order screen, so the "Đơn đang giao" card never keeps a finished status.
+ */
+export function useCustomerHome(visible = true) {
   const [status, setStatus] = useState<Status>("loading");
   const [shortcuts, setShortcuts] = useState<HomeShortcut[]>([]);
   const [address, setAddress] = useState<Address | null>(null);
@@ -59,6 +68,18 @@ export function useCustomerHome() {
     void load();
     void loadRecommendations("FOOD");
   }, [load, loadRecommendations]);
+
+  const shown = useRef(visible);
+  useEffect(() => {
+    if (visible && !shown.current) void load(true);
+    shown.current = visible;
+  }, [visible, load]);
+
+  usePolling(
+    () => void load(true),
+    ORDER_POLL_MS,
+    visible && recentOrder !== null && isActive(recentOrder.status)
+  );
 
   useEffect(() => {
     const trimmed = query.trim();

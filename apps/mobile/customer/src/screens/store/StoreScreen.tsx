@@ -45,7 +45,12 @@ export function StoreScreen({
   const { cart, count, subtotal } = useCart();
   const scroll = useRef<ScrollView>(null);
   const offsets = useRef<Record<string, number>>({});
-  const [navHeight, setNavHeight] = useState(0);
+  const [navY, setNavY] = useState(0);
+  // Once the category chips scroll up to the floating buttons, a solid
+  // compact header (back · chips · cart) replaces them, so nothing scrolls
+  // under the transparent Android status bar or behind the buttons.
+  const [compact, setCompact] = useState(false);
+  const compactHeight = top + spacing.xs * 2 + sizes.touchTarget.recommended;
   const [activeCategory, setActiveCategory] = useState<string>();
   const focused = useRef(false);
 
@@ -68,21 +73,27 @@ export function StoreScreen({
         (quantities.get(line.productId) ?? 0) + line.quantity
       );
 
+  const backButton = (
+    <IconButton
+      icon="back"
+      label="Quay lại"
+      tone={compact ? "plain" : "floating"}
+      onPress={onBack}
+    />
+  );
+  const cartButton = (
+    <IconButton
+      icon="bag"
+      label="Giỏ hàng"
+      tone={compact ? "plain" : "floating"}
+      badge={count}
+      onPress={onOpenCart}
+    />
+  );
   const floating = (
     <View style={[styles.floatingRow, { top: top + spacing.xs }]}>
-      <IconButton
-        icon="back"
-        label="Quay lại"
-        tone="floating"
-        onPress={onBack}
-      />
-      <IconButton
-        icon="bag"
-        label="Giỏ hàng"
-        tone="floating"
-        badge={count}
-        onPress={onOpenCart}
-      />
+      {backButton}
+      {cartButton}
     </View>
   );
 
@@ -121,11 +132,48 @@ export function StoreScreen({
       </View>
     );
 
+  const chips = (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.navContent}
+    >
+      {store.categories.map((category) => {
+        const selected = category.id === activeCategory;
+        return (
+          <Pressable
+            key={category.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            hitSlop={{ top: spacing.xxs, bottom: spacing.xxs }}
+            onPress={() => {
+              setActiveCategory(category.id);
+              scroll.current?.scrollTo({
+                y: (offsets.current[category.id] ?? 0) - compactHeight,
+                animated: true
+              });
+            }}
+            style={[styles.navItem, selected && styles.navItemOn]}
+          >
+            <Text style={[styles.navText, selected && styles.navTextOn]}>
+              {category.name}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+
   return (
     <View style={styles.screen}>
       <ScrollView
         ref={scroll}
-        stickyHeaderIndices={[2]}
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          const next =
+            event.nativeEvent.contentOffset.y >= navY - compactHeight;
+          if (next !== compact) setCompact(next);
+        }}
         contentContainerStyle={{
           paddingBottom: cartHere ? 120 : spacing.xl
         }}
@@ -177,37 +225,9 @@ export function StoreScreen({
         </View>
         <View
           style={styles.nav}
-          onLayout={(event) => setNavHeight(event.nativeEvent.layout.height)}
+          onLayout={(event) => setNavY(event.nativeEvent.layout.y)}
         >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.navContent}
-          >
-            {store.categories.map((category) => {
-              const selected = category.id === activeCategory;
-              return (
-                <Pressable
-                  key={category.id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  hitSlop={{ top: spacing.xxs, bottom: spacing.xxs }}
-                  onPress={() => {
-                    setActiveCategory(category.id);
-                    scroll.current?.scrollTo({
-                      y: (offsets.current[category.id] ?? 0) - navHeight,
-                      animated: true
-                    });
-                  }}
-                  style={[styles.navItem, selected && styles.navItemOn]}
-                >
-                  <Text style={[styles.navText, selected && styles.navTextOn]}>
-                    {category.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          {chips}
         </View>
         {store.categories.map((category) => (
           <View
@@ -231,7 +251,15 @@ export function StoreScreen({
           </View>
         ))}
       </ScrollView>
-      {floating}
+      {compact ? (
+        <View style={[styles.compactHeader, { paddingTop: top }]}>
+          {backButton}
+          <View style={styles.flex}>{chips}</View>
+          {cartButton}
+        </View>
+      ) : (
+        floating
+      )}
       {cartHere ? (
         <CartBar count={count} subtotal={subtotal} onPress={onOpenCart} />
       ) : null}
@@ -242,6 +270,20 @@ export function StoreScreen({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface.primary },
   cover: { width: "100%" },
+  flex: { flex: 1 },
+  compactHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.xs,
+    paddingBottom: spacing.xs,
+    backgroundColor: colors.surface.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.subtle
+  },
   floatingRow: {
     position: "absolute",
     left: spacing.md,

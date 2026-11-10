@@ -27,6 +27,7 @@ import { setAcceptingOrders, setPublished } from "../../services/storefront";
 import type { SetupStepKey } from "../../types/storefront";
 import { publishBlockers, setupProgress } from "../../utils/storefront";
 import type { Navigation, Notify } from "../routes";
+import { StatusBarScrim } from "../../components/StatusBarScrim";
 
 type Props = {
   storefront: Storefront;
@@ -238,6 +239,7 @@ export function HomeScreen({
           />
         </Card>
       </ScrollView>
+      <StatusBarScrim color={colors.surface.secondary} />
     </View>
   );
 }
