@@ -1,3 +1,7 @@
+import {
+  DEVELOPMENT_FIXTURES_FLAG,
+  developmentFixturesEnabled
+} from "./development-fixtures.js";
 export type OtpProviderMode = "test" | "disabled";
 export interface AuthEnvironment {
   otpProvider: OtpProviderMode;
@@ -25,6 +29,10 @@ export function readAuthEnvironment(env: NodeJS.ProcessEnv): AuthEnvironment {
     throw new Error("OTP_PROVIDER must be test or disabled.");
   if (env.NODE_ENV === "production" && otpProvider === "test")
     throw new Error("OTP_PROVIDER=test is forbidden in production.");
+  if (otpProvider === "test" && !developmentFixturesEnabled(env))
+    throw new Error(
+      `OTP_PROVIDER=test needs ${DEVELOPMENT_FIXTURES_FLAG}=true and NODE_ENV=development (or test).`
+    );
   const adminOrigin = env.ADMIN_WEB_ORIGIN ?? "http://localhost:3000";
   const url = new URL(adminOrigin);
   if (!/^https?:$/.test(url.protocol) || url.origin !== adminOrigin)

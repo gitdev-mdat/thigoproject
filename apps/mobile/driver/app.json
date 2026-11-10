@@ -4,6 +4,14 @@
     "slug": "thigo-driver",
     "version": "0.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic"
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "THIGO dùng vị trí khi ứng dụng đang mở để tìm đơn giao gần bạn."
+        }
+      ]
+    ]
   }
 }

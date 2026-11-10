@@ -8,6 +8,10 @@ import {
   ApplicationRole
 } from "../../entities/auth/user-role.entity.js";
 import { User } from "../../entities/auth/user.entity.js";
+import {
+  MERCHANT_APPLICANT,
+  type SignInPurpose
+} from "../../common/auth/sign-in-purpose.js";
 @Injectable()
 export class AuthRepository {
   constructor(@InjectDataSource() private readonly db: DataSource) {}
@@ -29,7 +33,7 @@ export class AuthRepository {
   async consumeAndCreateSession(
     challengeId: string,
     phone: string,
-    role: ApplicationRole,
+    role: SignInPurpose,
     tokenHash: string,
     expiresAt: Date
   ): Promise<User | null> {
@@ -47,16 +51,31 @@ export class AuthRepository {
       let user = await manager
         .getRepository(User)
         .findOne({ where: { phone }, relations: { roles: true } });
-      if (!user && role === ApplicationRole.CUSTOMER) {
+      // A new phone may become a customer (F01). A merchant applicant gets
+      // that same customer account; the MERCHANT role only comes from an
+      // Admin approval (see MerchantApplicationService).
+      if (
+        !user &&
+        (role === ApplicationRole.CUSTOMER || role === MERCHANT_APPLICANT)
+      ) {
+        const customer = ApplicationRole.CUSTOMER;
         user = await manager
           .getRepository(User)
           .save(manager.getRepository(User).create({ phone }));
-        await manager.getRepository(UserRole).save({ userId: user.id, role });
-        user.roles = [{ userId: user.id, role } as UserRole];
+        await manager
+          .getRepository(UserRole)
+          .save({ userId: user.id, role: customer });
+        user.roles = [{ userId: user.id, role: customer } as UserRole];
       }
+      if (!user || !user.isActive) return null;
+      // Admin sessions only come from the Admin web's httpOnly cookie sign-in.
       if (
-        !user ||
-        !user.isActive ||
+        role === MERCHANT_APPLICANT &&
+        user.roles.some((item) => item.role === ApplicationRole.ADMIN)
+      )
+        return null;
+      if (
+        role !== MERCHANT_APPLICANT &&
         !user.roles.some((item) => item.role === role)
       )
         return null;

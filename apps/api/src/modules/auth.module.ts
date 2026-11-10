@@ -4,6 +4,7 @@ import { AuthRepository } from "../repositories/auth/auth.repository.js";
 import { AuthService } from "../services/auth/auth.service.js";
 @Module({
   controllers: [AuthController],
-  providers: [AuthRepository, AuthService]
+  providers: [AuthRepository, AuthService],
+  exports: [AuthService]
 })
 export class AuthModule {}

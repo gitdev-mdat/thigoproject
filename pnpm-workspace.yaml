@@ -3,6 +3,9 @@ packages:
   - "apps/mobile/*"
   - "packages/*"
 
+minimumReleaseAgeExclude:
+  - expo-location@57.0.21
+
 onlyBuiltDependencies:
   - "@nestjs/core"
   - "sharp"

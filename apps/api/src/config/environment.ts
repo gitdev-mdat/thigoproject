@@ -9,6 +9,12 @@ export interface DatabaseEnvironment {
   databaseUrl: string;
 }
 
+/** Explicit opt-in for pointing local development at a non-local database. */
+export const REMOTE_DEVELOPMENT_DATABASE_FLAG =
+  "THIGO_ALLOW_REMOTE_DEV_DATABASE";
+
+const LOCAL_DATABASE_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
 export function readApiEnvironment(
   environment: NodeJS.ProcessEnv
 ): ApiEnvironment {
@@ -43,6 +49,17 @@ export function readDatabaseEnvironment(
     parsedUrl.pathname === "/"
   ) {
     throw new Error("DATABASE_URL must be a valid PostgreSQL connection URL.");
+  }
+
+  if (
+    environment.NODE_ENV === "development" &&
+    !LOCAL_DATABASE_HOSTS.has(parsedUrl.hostname) &&
+    environment[REMOTE_DEVELOPMENT_DATABASE_FLAG] !== "true"
+  ) {
+    throw new Error(
+      `NODE_ENV=development expects the local Docker database (localhost). ` +
+        `Set ${REMOTE_DEVELOPMENT_DATABASE_FLAG}=true to use a remote database on purpose.`
+    );
   }
 
   const connectionTimeoutMs = Number(

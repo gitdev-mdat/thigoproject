@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "expo start",
     "start": "expo start",
-    "android": "expo start --android",
+    "android": "node --dns-result-order=ipv4first node_modules/expo/bin/cli start --localhost --android",
     "ios": "expo start --ios",
     "build": "expo export --platform android --output-dir dist",
     "lint": "eslint . --max-warnings=0",
@@ -17,10 +17,12 @@
     "@thigo/auth-client": "workspace:*",
     "@thigo/design-tokens": "workspace:*",
     "expo": "~57.0.26",
+    "expo-location": "~57.0.21",
     "expo-secure-store": "^57.0.4",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
-    "react-native": "0.86.3"
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0"
   },
   "devDependencies": {
     "@thigo/typescript-config": "workspace:*",

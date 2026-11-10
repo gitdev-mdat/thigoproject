@@ -6,14 +6,31 @@ import {
   UnauthorizedException
 } from "@nestjs/common";
 import { readAuthEnvironment } from "../../config/auth-environment.js";
-import { ApplicationRole } from "../../entities/auth/user-role.entity.js";
 import {
   hashSecret,
   createSessionToken,
   verifySecret
 } from "../../common/auth/crypto.js";
 import { canonicalizeVietnamesePhone } from "../../common/auth/phone-number.js";
+import type { SignInPurpose } from "../../dto/auth/auth.dto.js";
 import { AuthRepository } from "../../repositories/auth/auth.repository.js";
+import { developmentQuickLoginAccounts } from "../../development/auth-fixtures.js";
+
+/**
+ * The resend cooldown throttles real code deliveries. The test provider sends
+ * nothing, so once its latest code has been used to sign in, a new one may be
+ * requested at once (sign out, then quick login again). A pending code still
+ * waits for the cooldown under every provider.
+ */
+export function otpResendBlocked(
+  latest: { resendAfter: Date; consumedAt: Date | null } | null,
+  otpProvider: string,
+  now = new Date()
+): boolean {
+  if (!latest || latest.resendAfter <= now) return false;
+  return !(otpProvider === "test" && latest.consumedAt);
+}
+
 @Injectable()
 export class AuthService {
   private readonly config = readAuthEnvironment(process.env);
@@ -21,7 +38,7 @@ export class AuthService {
   async requestOtp(phoneInput: string) {
     const phone = this.phone(phoneInput);
     const latest = await this.repository.latestChallenge(phone);
-    if (latest && latest.resendAfter > new Date())
+    if (otpResendBlocked(latest, this.config.otpProvider))
       throw new BadRequestException("Vui lòng chờ trước khi gửi lại mã.");
     if (this.config.otpProvider !== "test")
       throw new ServiceUnavailableException("Dịch vụ OTP chưa sẵn sàng.");
@@ -37,7 +54,7 @@ export class AuthService {
     });
     return { accepted: true };
   }
-  async verifyOtp(phoneInput: string, otp: string, role: ApplicationRole) {
+  async verifyOtp(phoneInput: string, otp: string, role: SignInPurpose) {
     const phone = this.phone(phoneInput);
     const challenge = await this.repository.latestChallenge(phone);
     if (
@@ -71,6 +88,10 @@ export class AuthService {
         roles: user.roles.map((item) => item.role)
       }
     };
+  }
+  /** Seeded accounts for the DEV quick login, or none outside local development. */
+  quickLoginAccounts(application: string) {
+    return developmentQuickLoginAccounts(process.env, application);
   }
   async authenticate(token: string) {
     const session = await this.repository.resolveSession(hashSecret(token));
