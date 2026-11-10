@@ -13,6 +13,7 @@ import { OrderStatus } from "../../entities/ordering/order.entity.js";
 import { storeClosedReason } from "../../common/catalog/store-availability.js";
 import { CatalogRepository } from "../../repositories/catalog/catalog.repository.js";
 import { OrderRepository } from "../../repositories/ordering/order.repository.js";
+import { DispatchRepository } from "../../repositories/driver/dispatch.repository.js";
 import { toMerchantOrder } from "./order-mapper.js";
 
 export type MerchantAction = "accept" | "reject" | "prepare" | "ready";
@@ -45,7 +46,8 @@ const DONE = [
 export class MerchantOrderService {
   constructor(
     private readonly catalog: CatalogRepository,
-    private readonly orders: OrderRepository
+    private readonly orders: OrderRepository,
+    private readonly dispatch: DispatchRepository
   ) {}
 
   async store(userId: string): Promise<Store> {
@@ -85,13 +87,16 @@ export class MerchantOrderService {
       : null;
     if (!order) throw new NotFoundException("Không tìm thấy đơn hàng.");
     const { from, to } = MERCHANT_TRANSITIONS[action];
-    const moved = await this.orders.transition(
-      id,
-      [from],
-      to,
-      { storeId: store.id },
-      rejectReason ? { rejectReason } : {}
-    );
+    const moved =
+      action === "ready"
+        ? await this.dispatch.readyForDispatch(id, store.id)
+        : await this.orders.transition(
+            id,
+            [from],
+            to,
+            { storeId: store.id },
+            rejectReason ? { rejectReason } : {}
+          );
     if (!moved)
       throw new ConflictException(
         order.status === OrderStatus.CANCELLED

@@ -119,6 +119,13 @@ export class CheckoutService {
     return {
       storeId: store.id,
       storeName: store.name,
+      pickupLocation:
+        store.pickupLatitude === null || store.pickupLongitude === null
+          ? null
+          : {
+              latitude: store.pickupLatitude,
+              longitude: store.pickupLongitude
+            },
       lines,
       subtotalVnd,
       deliveryFeeVnd: DELIVERY_FEE_VND,
@@ -159,6 +166,10 @@ export class CheckoutService {
         customerPhone: user.phone,
         deliveryLabel: address.label,
         deliveryLine: address.line,
+        pickupLatitude: quote.pickupLocation?.latitude ?? null,
+        pickupLongitude: quote.pickupLocation?.longitude ?? null,
+        dropoffLatitude: address.latitude,
+        dropoffLongitude: address.longitude,
         deliveryNote: address.note,
         customerNote: input.note,
         idempotencyKey: input.idempotencyKey

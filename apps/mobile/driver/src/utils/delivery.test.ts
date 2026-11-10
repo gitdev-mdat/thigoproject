@@ -8,6 +8,7 @@ import {
   formatVnd,
   isFoodReady,
   itemsSummary,
+  mapDirectionsUrl,
   optionsSummary,
   readiness,
   telUrl
@@ -56,6 +57,14 @@ describe("telUrl", () => {
   it("strips formatting but keeps an international prefix", () => {
     expect(telUrl("0901 234 567")).toBe("tel:0901234567");
     expect(telUrl("+84 901-234-567")).toBe("tel:+84901234567");
+  });
+});
+
+describe("mapDirectionsUrl", () => {
+  it("hands exact coordinates to the maps destination parameter", () => {
+    expect(mapDirectionsUrl({ latitude: 10.7684, longitude: 106.6941 })).toBe(
+      "https://www.google.com/maps/dir/?api=1&destination=10.7684%2C106.6941"
+    );
   });
 });
 

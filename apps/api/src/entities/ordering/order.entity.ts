@@ -53,6 +53,26 @@ export class Order {
   deliveryLabel!: string;
   @Column({ name: "delivery_line", type: "varchar", length: 255 })
   deliveryLine!: string;
+  @Column({ name: "pickup_latitude", type: "double precision", nullable: true })
+  pickupLatitude!: number | null;
+  @Column({
+    name: "pickup_longitude",
+    type: "double precision",
+    nullable: true
+  })
+  pickupLongitude!: number | null;
+  @Column({
+    name: "dropoff_latitude",
+    type: "double precision",
+    nullable: true
+  })
+  dropoffLatitude!: number | null;
+  @Column({
+    name: "dropoff_longitude",
+    type: "double precision",
+    nullable: true
+  })
+  dropoffLongitude!: number | null;
   @Column({
     name: "delivery_note",
     type: "varchar",

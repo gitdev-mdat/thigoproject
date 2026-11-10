@@ -26,7 +26,7 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
 | F03 | Location & Service Area        | ✓        | ✓        | —      | —     | ✓   | PLANNED     |
 | F04 | Discovery, Cart & Checkout     | ✓        | —        | —      | —     | ✓   | PLANNED     |
 | F05 | Order Operations               | ✓        | ✓        | —      | ✓     | ✓   | PLANNED     |
-| F06 | Driver & Delivery              | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED     |
+| F06 | Driver & Delivery              | ✓        | ✓        | ✓      | ✓     | ✓   | IN_PROGRESS |
 | F07 | Realtime & Notifications       | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED     |
 | F08 | MVP Operations & Hardening     | ✓        | ✓        | ✓      | ✓     | ✓   | PLANNED     |
 
@@ -116,17 +116,17 @@ Features move in order: `F00 -> F01 -> F02 -> F03 -> F04 -> F05 -> F06 -> F07 ->
 
 ## F06 — Driver & Delivery
 
-- **Status:** `PLANNED`
+- **Status:** `IN_PROGRESS`
 - **Depends on:** F05
 - **Goal:** Support the approved driver availability, assignment, pickup, delivery, and cross-surface fulfillment journey.
 - **Surfaces:** Customer, Merchant, Driver, Admin, API.
 - **Progress:**
   - [ ] Confirm dependency completion
-  - [ ] Create and approve the feature `TASK.md`
-  - [ ] Implement the approved driver and delivery scope
+  - [x] Create and approve the feature `TASK.md`
+  - [x] Implement the approved driver and delivery scope
   - [ ] Verify assignment and delivery transitions, authorization, recovery, and operational readability
   - [ ] Record completion evidence and promote F07
-- **Notes:** Matching, dispatch, driver eligibility, schedules, route behavior, proof of delivery, and exception policy remain active-task decisions. The 2026-10-08 slice adds a basic driver flow (self-claim from an open list with one active job per driver and a race-safe claim, pickup only when food is ready, delivery confirmation); there is no GPS, dispatch or proof of delivery, and Android Emulator verification is outstanding.
+- **Notes:** Matching, dispatch, driver eligibility, schedules, route behavior, proof of delivery, and exception policy remain active-task decisions. The 2026-10-08 slice adds a basic driver flow (self-claim from an open list with one active job per driver and a race-safe claim, pickup only when food is ready, delivery confirmation); there is no GPS, dispatch or proof of delivery, and Android Emulator verification is outstanding. Owner priority exception (2026-10-13): F06 is activated before the normal sequence to build the narrowly scoped dispatch system in `TASK.md` for fewer than 50 active drivers. This does not complete or bypass the unfinished acceptance work of F02, F03, F04, or F05; only minimum F03 location and F05 lifecycle prerequisites required by F06 may be added. The 2026-10-14 checkpoint verifies the real dispatch/delivery/earnings flow and 50-driver PostgreSQL load; direct sensor-sourced GPS remains blocked by the current emulator location provider, so F06 stays `IN_PROGRESS`.
 
 ## F07 — Realtime & Notifications
 

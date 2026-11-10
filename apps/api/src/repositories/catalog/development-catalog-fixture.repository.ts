@@ -55,6 +55,8 @@ export class DevelopmentCatalogFixtureRepository implements DevelopmentCatalogWr
         category: fixture.category,
         description: fixture.description,
         addressLine: fixture.addressLine,
+        pickupLatitude: fixture.pickupLatitude,
+        pickupLongitude: fixture.pickupLongitude,
         coverImageUrl,
         isActive: true
       },

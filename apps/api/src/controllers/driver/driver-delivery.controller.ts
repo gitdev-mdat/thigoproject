@@ -45,4 +45,11 @@ export class DriverDeliveryController {
   ) {
     return this.deliveries.deliver(user.id, id);
   }
+
+  @Post(":id/cancel") @HttpCode(200) cancel(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string
+  ) {
+    return this.deliveries.cancel(user.id, id);
+  }
 }

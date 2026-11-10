@@ -9,6 +9,7 @@ import { HealthService } from "../services/health/health.service.js";
 import { AdminModule } from "./admin.module.js";
 import { AuthModule } from "./auth.module.js";
 import { CatalogModule } from "./catalog.module.js";
+import { DriverModule } from "./driver.module.js";
 import { MerchantModule } from "./merchant.module.js";
 import { OrderingModule } from "./ordering.module.js";
 
@@ -17,6 +18,7 @@ import { OrderingModule } from "./ordering.module.js";
     AuthModule,
     CatalogModule,
     OrderingModule,
+    DriverModule,
     MerchantModule,
     AdminModule,
     TypeOrmModule.forRoot({

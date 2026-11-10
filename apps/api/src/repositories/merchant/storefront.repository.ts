@@ -22,6 +22,8 @@ export type NewStore = Pick<
   | "category"
   | "description"
   | "addressLine"
+  | "pickupLatitude"
+  | "pickupLongitude"
   | "phone"
 >;
 
@@ -32,6 +34,8 @@ export type StorePatch = Partial<
     | "category"
     | "description"
     | "addressLine"
+    | "pickupLatitude"
+    | "pickupLongitude"
     | "phone"
     | "logoImageUrl"
     | "coverImageUrl"

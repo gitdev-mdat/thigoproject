@@ -13,6 +13,10 @@ import {
   authErrorMessage,
   sessionStore
 } from "../services/auth";
+import {
+  restoreFailureKind,
+  type RestoreFailure
+} from "../services/authMessages";
 import { isLikelyVietnamesePhone } from "../utils/phone";
 
 export type AuthStep =
@@ -26,6 +30,8 @@ export function useAuthSession() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [user, setUser] = useState<AuthUser>();
+  const [restoreFailure, setRestoreFailure] =
+    useState<RestoreFailure>("network");
   const [cooldown, setCooldown] = useState(0);
   const verifying = useRef(false);
   // Offered by the API only in local development with fixtures on.
@@ -54,6 +60,7 @@ export function useAuthSession() {
         setNotice("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         setStep("phone");
       } else {
+        setRestoreFailure(restoreFailureKind(e));
         setStep("restoreFailed");
       }
     }
@@ -196,6 +203,7 @@ export function useAuthSession() {
     error,
     notice,
     user,
+    restoreFailure,
     cooldown,
     updatePhone,
     updateOtp,

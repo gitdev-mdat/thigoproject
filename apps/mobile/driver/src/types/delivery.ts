@@ -51,6 +51,8 @@ export type Delivery = {
     closedAt: string | null;
   };
   customerPhone: string | null;
+  pickupLocation: { latitude: number; longitude: number } | null;
+  dropoffLocation: { latitude: number; longitude: number } | null;
 };
 
 export type DeliveryOverview = {

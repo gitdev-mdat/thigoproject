@@ -45,6 +45,8 @@ export function toMerchantStore(
     category: store.category,
     description: store.description,
     addressLine: store.addressLine,
+    pickupLatitude: store.pickupLatitude,
+    pickupLongitude: store.pickupLongitude,
     phone: store.phone,
     logoImageUrl: store.logoImageUrl,
     coverImageUrl: store.coverImageUrl,

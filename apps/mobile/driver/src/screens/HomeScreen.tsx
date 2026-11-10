@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   Alert,
@@ -15,13 +16,18 @@ import { Notice } from "../components/Notice";
 import { Placeholder } from "../components/Placeholder";
 import { AccountRow } from "../components/delivery/AccountRow";
 import { ActionBar } from "../components/delivery/ActionBar";
+import { AvailabilityCard } from "../components/delivery/AvailabilityCard";
 import { AvailableCard } from "../components/delivery/AvailableCard";
 import { CurrentDelivery } from "../components/delivery/CurrentDelivery";
 import { DeliveredState } from "../components/delivery/DeliveredState";
 import { DeliveryHeader } from "../components/delivery/DeliveryHeader";
+import { EarningsCard } from "../components/delivery/EarningsCard";
 import { HistoryList } from "../components/delivery/HistoryList";
+import { OfferCard } from "../components/delivery/OfferCard";
 import type { AuthSession } from "../hooks/useAuthSession";
 import { useDeliveries } from "../hooks/useDeliveries";
+import { useDriverPresence } from "../hooks/useDriverPresence";
+import { useDriverDispatch } from "../hooks/useDriverDispatch";
 import {
   deliverConfirmation,
   deliveryStage,
@@ -36,6 +42,11 @@ export function HomeScreen({ session }: Props) {
   const deliveries = useDeliveries();
   const { overview, pending, delivered } = deliveries;
   const current = overview?.current ?? null;
+  const presence = useDriverPresence(Boolean(current));
+  const dispatch = useDriverDispatch(
+    !current && presence.status?.presence?.isOnline === true
+  );
+  const refreshEarnings = dispatch.refreshEarnings;
   const stage = current ? deliveryStage(current.status) : null;
   const job = current && stage && !delivered ? { current, stage } : null;
   const updated = deliveries.updatedAt
@@ -46,6 +57,10 @@ export function HomeScreen({ session }: Props) {
     : deliveries.stale
       ? `Mất kết nối · ${updated}`
       : `Cập nhật lúc ${updated}`;
+
+  useEffect(() => {
+    if (delivered) refreshEarnings();
+  }, [delivered, refreshEarnings]);
 
   const runStageAction = () => {
     if (!job) return;
@@ -71,6 +86,27 @@ export function HomeScreen({ session }: Props) {
       [
         { text: "Ở lại", style: "cancel" },
         { text: "Đăng xuất", onPress: () => void session.logout() }
+      ]
+    );
+  };
+
+  const acceptOffer = async () => {
+    const accepted = await dispatch.accept();
+    if (accepted) deliveries.adoptCurrent(accepted);
+  };
+
+  const cancelDelivery = () => {
+    if (!current) return;
+    Alert.alert(
+      `Chuyển lại đơn ${current.code}?`,
+      "Chỉ chuyển lại khi bạn chưa lấy món. Hệ thống sẽ tìm tài xế khác.",
+      [
+        { text: "Giữ đơn", style: "cancel" },
+        {
+          text: "Chuyển lại đơn",
+          style: "destructive",
+          onPress: () => deliveries.cancel(current.id)
+        }
       ]
     );
   };
@@ -111,7 +147,26 @@ export function HomeScreen({ session }: Props) {
       );
     }
     if (job)
-      return <CurrentDelivery delivery={job.current} stage={job.stage} />;
+      return (
+        <CurrentDelivery
+          delivery={job.current}
+          stage={job.stage}
+          cancelling={
+            pending?.id === job.current.id && pending.action === "cancel"
+          }
+          onCancel={cancelDelivery}
+        />
+      );
+    if (dispatch.offer)
+      return (
+        <OfferCard
+          offer={dispatch.offer}
+          pending={dispatch.pending}
+          onAccept={() => void acceptOffer()}
+          onReject={dispatch.reject}
+          onExpired={dispatch.reloadOffer}
+        />
+      );
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle} accessibilityRole="header">
@@ -162,10 +217,25 @@ export function HomeScreen({ session }: Props) {
           />
         }
       >
+        <AvailabilityCard
+          status={presence.status}
+          busy={presence.busy}
+          error={presence.error}
+          onChange={(online) => {
+            presence.setOnline(online);
+            if (online) setTimeout(deliveries.reload, 750);
+          }}
+        />
         {deliveries.notice ? (
           <Notice message={deliveries.notice} tone="warning" />
         ) : null}
+        {dispatch.error ? (
+          <Notice message={dispatch.error} tone="warning" />
+        ) : null}
         {body()}
+        {dispatch.earnings ? (
+          <EarningsCard earnings={dispatch.earnings} />
+        ) : null}
         {overview && !job && !delivered ? (
           <HistoryList deliveries={overview.history} />
         ) : null}

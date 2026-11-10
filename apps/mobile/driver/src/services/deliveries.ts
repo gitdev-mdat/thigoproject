@@ -11,7 +11,9 @@ export const deliveriesApi = {
   pickup: (id: string) =>
     apiRequest<Delivery>(path(id, "pickup"), { method: "POST" }),
   deliver: (id: string) =>
-    apiRequest<Delivery>(path(id, "deliver"), { method: "POST" })
+    apiRequest<Delivery>(path(id, "deliver"), { method: "POST" }),
+  cancel: (id: string) =>
+    apiRequest<Delivery>(path(id, "cancel"), { method: "POST" })
 };
 
 export type DeliveryAction = Exclude<keyof typeof deliveriesApi, "overview">;

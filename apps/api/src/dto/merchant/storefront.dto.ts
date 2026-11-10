@@ -91,6 +91,8 @@ export interface StoreProfileInput {
   description: string | null;
   addressLine: string;
   phone: string;
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
 }
 
 export interface StoreUpdateInput {
@@ -99,6 +101,8 @@ export interface StoreUpdateInput {
   description?: string | null;
   addressLine?: string;
   phone?: string;
+  pickupLatitude?: number | null;
+  pickupLongitude?: number | null;
   /** null removes the image; a media id attaches an uploaded one. */
   logoMediaId?: string | null;
   coverMediaId?: string | null;
@@ -106,12 +110,15 @@ export interface StoreUpdateInput {
 
 export function parseStoreProfile(body: unknown): StoreProfileInput {
   const value = record(body);
+  const coordinates = storeCoordinates(value, false);
   return {
     name: required(value.name, 2, 120, "Tên cửa hàng"),
     category: category(value.category),
     description: paragraph(value.description, 500, "Mô tả"),
     addressLine: required(value.addressLine, 5, 255, "Địa chỉ"),
-    phone: parseStorePhone(value.phone)
+    phone: parseStorePhone(value.phone),
+    pickupLatitude: coordinates?.pickupLatitude ?? null,
+    pickupLongitude: coordinates?.pickupLongitude ?? null
   };
 }
 
@@ -126,6 +133,8 @@ export function parseStoreUpdate(body: unknown): StoreUpdateInput {
   if (has(value, "addressLine"))
     input.addressLine = required(value.addressLine, 5, 255, "Địa chỉ");
   if (has(value, "phone")) input.phone = parseStorePhone(value.phone);
+  const coordinates = storeCoordinates(value, true);
+  if (coordinates) Object.assign(input, coordinates);
   if (has(value, "logoMediaId")) input.logoMediaId = mediaId(value.logoMediaId);
   if (has(value, "coverMediaId"))
     input.coverMediaId = mediaId(value.coverMediaId);
@@ -264,6 +273,8 @@ export interface MerchantStoreDto {
   category: StoreCategory;
   description: string | null;
   addressLine: string;
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
   phone: string | null;
   logoImageUrl: string | null;
   coverImageUrl: string | null;
@@ -273,6 +284,40 @@ export interface MerchantStoreDto {
   /** Whether customers can order right now, and why not. */
   isOpenNow: boolean;
   closedReason: "UNPUBLISHED" | "PAUSED" | "OUTSIDE_HOURS" | null;
+}
+
+function storeCoordinates(
+  value: Record<string, unknown>,
+  partial: boolean
+): { pickupLatitude: number | null; pickupLongitude: number | null } | null {
+  const hasLatitude = has(value, "pickupLatitude");
+  const hasLongitude = has(value, "pickupLongitude");
+  if (!hasLatitude && !hasLongitude)
+    return partial
+      ? null
+      : {
+          pickupLatitude: null,
+          pickupLongitude: null
+        };
+  if (!hasLatitude || !hasLongitude)
+    invalid("Tọa độ cửa hàng cần đủ vĩ độ và kinh độ.");
+  if (value.pickupLatitude === null && value.pickupLongitude === null)
+    return { pickupLatitude: null, pickupLongitude: null };
+  if (
+    typeof value.pickupLatitude !== "number" ||
+    !Number.isFinite(value.pickupLatitude) ||
+    value.pickupLatitude < -90 ||
+    value.pickupLatitude > 90 ||
+    typeof value.pickupLongitude !== "number" ||
+    !Number.isFinite(value.pickupLongitude) ||
+    value.pickupLongitude < -180 ||
+    value.pickupLongitude > 180
+  )
+    invalid("Tọa độ cửa hàng không hợp lệ.");
+  return {
+    pickupLatitude: value.pickupLatitude,
+    pickupLongitude: value.pickupLongitude
+  };
 }
 
 export interface SetupStepDto {

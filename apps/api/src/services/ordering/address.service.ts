@@ -20,7 +20,9 @@ export function toAddress(address: CustomerAddress): AddressDto {
     label: address.label,
     line: address.line,
     note: address.note,
-    isDefault: address.isDefault
+    isDefault: address.isDefault,
+    latitude: address.latitude,
+    longitude: address.longitude
   };
 }
 

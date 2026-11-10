@@ -24,7 +24,9 @@ describe("storefront input", () => {
       category: "COFFEE",
       description: null,
       addressLine: "45 Lê Lợi, Q.1",
-      phone: "+84901234567"
+      phone: "+84901234567",
+      pickupLatitude: null,
+      pickupLongitude: null
     });
     expect(parseStorePhone("(028) 3822-1234")).toBe("+842838221234");
     expect(() => parseStorePhone("12345")).toThrow("không hợp lệ");

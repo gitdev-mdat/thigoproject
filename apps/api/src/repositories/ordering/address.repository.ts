@@ -39,7 +39,14 @@ export class AddressRepository {
   /** Saves an address; when it becomes the default, the old default is cleared in the same transaction. */
   async save(
     userId: string,
-    values: { id?: string; label: string; line: string; note: string | null },
+    values: {
+      id?: string;
+      label: string;
+      line: string;
+      note: string | null;
+      latitude: number | null;
+      longitude: number | null;
+    },
     makeDefault: boolean
   ): Promise<CustomerAddress> {
     return this.db.transaction(async (manager) => {
@@ -58,6 +65,8 @@ export class AddressRepository {
           label: values.label,
           line: values.line,
           note: values.note,
+          latitude: values.latitude,
+          longitude: values.longitude,
           ...(makeDefault ? { isDefault: true } : {})
         })
       );

@@ -34,6 +34,15 @@ export function telUrl(phone: string): string {
   return `tel:${trimmed.startsWith("+") ? "+" : ""}${digits}`;
 }
 
+/** Android/iOS can hand this HTTPS directions URL to an installed maps app. */
+export function mapDirectionsUrl(location: {
+  latitude: number;
+  longitude: number;
+}): string {
+  const destination = `${location.latitude},${location.longitude}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+}
+
 /** Whether the store has reported the food ready (or it is already collected). */
 export function isFoodReady(status: OrderStatus): boolean {
   return status === "READY_FOR_PICKUP" || status === "PICKED_UP";

@@ -54,7 +54,9 @@ describe("parseAddressInput", () => {
       label: "Nhà",
       line: "12 Nguyễn Trãi",
       note: null,
-      makeDefault: false
+      makeDefault: false,
+      latitude: null,
+      longitude: null
     });
     expect(() => parseAddressInput({ label: "Nhà", line: "12" })).toThrow(
       BadRequestException

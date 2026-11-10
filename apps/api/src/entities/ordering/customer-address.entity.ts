@@ -13,6 +13,10 @@ export class CustomerAddress {
   @Column({ name: "user_id", type: "uuid" }) userId!: string;
   @Column({ type: "varchar", length: 40 }) label!: string;
   @Column({ type: "varchar", length: 255 }) line!: string;
+  @Column({ type: "double precision", nullable: true }) latitude!:
+    number | null;
+  @Column({ type: "double precision", nullable: true }) longitude!:
+    number | null;
   @Column({ type: "varchar", length: 255, nullable: true }) note!:
     string | null;
   @Column({ name: "is_default", type: "boolean", default: false })

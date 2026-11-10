@@ -28,6 +28,14 @@ export class Store {
   category!: StoreCategory;
   @Column({ name: "address_line", type: "varchar", length: 255 })
   addressLine!: string;
+  @Column({ name: "pickup_latitude", type: "double precision", nullable: true })
+  pickupLatitude!: number | null;
+  @Column({
+    name: "pickup_longitude",
+    type: "double precision",
+    nullable: true
+  })
+  pickupLongitude!: number | null;
   @Column({
     name: "cover_image_url",
     type: "varchar",

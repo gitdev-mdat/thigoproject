@@ -45,6 +45,30 @@ export interface AddressInput {
   line: string;
   note: string | null;
   makeDefault: boolean;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+function optionalCoordinates(value: Record<string, unknown>): {
+  latitude: number | null;
+  longitude: number | null;
+} {
+  const latitude = value.latitude;
+  const longitude = value.longitude;
+  if (latitude === undefined && longitude === undefined)
+    return { latitude: null, longitude: null };
+  if (
+    typeof latitude !== "number" ||
+    !Number.isFinite(latitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    typeof longitude !== "number" ||
+    !Number.isFinite(longitude) ||
+    longitude < -180 ||
+    longitude > 180
+  )
+    invalid("Tọa độ địa chỉ không hợp lệ.");
+  return { latitude, longitude };
 }
 
 export function parseAddressInput(body: unknown): AddressInput {
@@ -53,7 +77,8 @@ export function parseAddressInput(body: unknown): AddressInput {
     label: requiredText(value.label, 1, 40, "Tên địa chỉ"),
     line: requiredText(value.line, 5, 255, "Địa chỉ"),
     note: optionalText(value.note, 255),
-    makeDefault: value.makeDefault === true
+    makeDefault: value.makeDefault === true,
+    ...optionalCoordinates(value)
   };
 }
 
@@ -63,6 +88,8 @@ export interface AddressDto {
   line: string;
   note: string | null;
   isDefault: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 // ---- Checkout ----
@@ -167,6 +194,7 @@ export interface QuoteLineDto {
 export interface QuoteDto {
   storeId: string;
   storeName: string;
+  pickupLocation: { latitude: number; longitude: number } | null;
   lines: QuoteLineDto[];
   subtotalVnd: number;
   deliveryFeeVnd: number;
@@ -213,4 +241,6 @@ export interface OrderDetailDto extends OrderSummaryDto {
 /** What a driver needs; the merchant view omits the customer's address and phone. */
 export interface DeliveryDto extends OrderDetailDto {
   customerPhone: string | null;
+  pickupLocation: { latitude: number; longitude: number } | null;
+  dropoffLocation: { latitude: number; longitude: number } | null;
 }

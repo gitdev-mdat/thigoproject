@@ -27,6 +27,8 @@ export interface StoreFixture {
   category: StoreCategory;
   description: string;
   addressLine: string;
+  pickupLatitude: number;
+  pickupLongitude: number;
   cover: string;
   categories: { name: string; products: ProductFixture[] }[];
 }
@@ -110,6 +112,8 @@ export const DEVELOPMENT_STORE_FIXTURES: StoreFixture[] = [
     description:
       "Cơm tấm sườn nướng than hoa, nước mắm pha theo công thức nhà.",
     addressLine: "84 Đinh Tiên Hoàng, P. Đa Kao, Q.1",
+    pickupLatitude: 10.789,
+    pickupLongitude: 106.6993,
     cover: "com-tam",
     categories: [
       {
@@ -182,6 +186,8 @@ export const DEVELOPMENT_STORE_FIXTURES: StoreFixture[] = [
     category: StoreCategory.FOOD,
     description: "Nước dùng hầm xương 12 tiếng, sả và mắm ruốc Huế.",
     addressLine: "21 Trần Quang Khải, P. Tân Định, Q.1",
+    pickupLatitude: 10.7917,
+    pickupLongitude: 106.6932,
     cover: "bun-bo",
     categories: [
       {
@@ -230,6 +236,8 @@ export const DEVELOPMENT_STORE_FIXTURES: StoreFixture[] = [
     category: StoreCategory.FOOD,
     description: "Phở bò kiểu Bắc, nước trong, ngọt thanh vị quế hồi.",
     addressLine: "158 Pasteur, P. Bến Nghé, Q.1",
+    pickupLatitude: 10.7773,
+    pickupLongitude: 106.6997,
     cover: "pho",
     categories: [
       {
@@ -278,6 +286,8 @@ export const DEVELOPMENT_STORE_FIXTURES: StoreFixture[] = [
     category: StoreCategory.FOOD,
     description: "Bánh mì nướng giòn, pate gan nhà làm và bún thịt nướng.",
     addressLine: "37 Nguyễn Huệ, P. Bến Nghé, Q.1",
+    pickupLatitude: 10.7737,
+    pickupLongitude: 106.7036,
     cover: "banh-mi",
     categories: [
       {
@@ -319,6 +329,8 @@ export const DEVELOPMENT_STORE_FIXTURES: StoreFixture[] = [
     category: StoreCategory.COFFEE,
     description: "Cà phê muối Huế với lớp kem mặn béo.",
     addressLine: "12 Lê Thánh Tôn, P. Bến Nghé, Q.1",
+    pickupLatitude: 10.7787,
+    pickupLongitude: 106.7042,
     cover: "ca-phe-muoi",
     categories: [
       {
@@ -367,6 +379,8 @@ export const DEVELOPMENT_STORE_FIXTURES: StoreFixture[] = [
     category: StoreCategory.COFFEE,
     description: "Phin truyền thống và cà phê pha máy từ hạt Cầu Đất.",
     addressLine: "5 Hồ Tùng Mậu, P. Nguyễn Thái Bình, Q.1",
+    pickupLatitude: 10.7692,
+    pickupLongitude: 106.7014,
     cover: "latte",
     categories: [
       {
@@ -416,6 +430,8 @@ export const DEVELOPMENT_STORE_FIXTURES: StoreFixture[] = [
     category: StoreCategory.COFFEE,
     description: "Cà phê vợt Sài Gòn xưa và trà đào cam sả.",
     addressLine: "92 Võ Văn Tần, P.6, Q.3",
+    pickupLatitude: 10.7755,
+    pickupLongitude: 106.691,
     cover: "ca-phe-sua",
     categories: [
       {
@@ -458,6 +474,8 @@ export const DEVELOPMENT_STORE_FIXTURES: StoreFixture[] = [
     category: StoreCategory.MILK_TEA,
     description: "Trà sữa ủ lạnh, trân châu nấu mới mỗi 2 giờ.",
     addressLine: "210 Nguyễn Thị Minh Khai, P.6, Q.3",
+    pickupLatitude: 10.7725,
+    pickupLongitude: 106.687,
     cover: "tra-sua",
     categories: [
       {
@@ -507,6 +525,8 @@ export const DEVELOPMENT_STORE_FIXTURES: StoreFixture[] = [
     category: StoreCategory.MILK_TEA,
     description: "Trà nhài Thái Nguyên, sữa tươi thanh trùng.",
     addressLine: "45 Cao Thắng, P.3, Q.3",
+    pickupLatitude: 10.7708,
+    pickupLongitude: 106.6816,
     cover: "tra-trai-cay",
     categories: [
       {
@@ -549,6 +569,8 @@ export const DEVELOPMENT_STORE_FIXTURES: StoreFixture[] = [
     category: StoreCategory.MILK_TEA,
     description: "Sữa tươi trân châu đường đen, kem cheese mặn.",
     addressLine: "88 Nguyễn Trãi, P. Bến Thành, Q.1",
+    pickupLatitude: 10.7716,
+    pickupLongitude: 106.692,
     cover: "matcha",
     categories: [
       {

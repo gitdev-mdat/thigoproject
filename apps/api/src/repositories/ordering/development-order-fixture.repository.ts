@@ -4,6 +4,10 @@ import {
   UserRole
 } from "../../entities/auth/user-role.entity.js";
 import { User } from "../../entities/auth/user.entity.js";
+import {
+  DriverProfile,
+  DriverVehicleType
+} from "../../entities/driver/driver-profile.entity.js";
 import { Product } from "../../entities/catalog/product.entity.js";
 import { Store } from "../../entities/catalog/store.entity.js";
 import { CustomerAddress } from "../../entities/ordering/customer-address.entity.js";
@@ -84,15 +88,48 @@ export class DevelopmentOrderFixtureRepository implements DevelopmentOrderWriter
     return user.id;
   }
 
+  async ensureDriverProfile(
+    userId: string,
+    displayName: string,
+    vehiclePlate: string
+  ): Promise<void> {
+    await this.manager.getRepository(DriverProfile).upsert(
+      {
+        userId,
+        displayName,
+        vehicleType: DriverVehicleType.MOTORBIKE,
+        vehiclePlate,
+        lastAssignedAt: null
+      },
+      ["userId"]
+    );
+  }
+
   async upsertAddress(
     userId: string,
-    address: { label: string; line: string; note: string; isDefault: boolean }
+    address: {
+      label: string;
+      line: string;
+      note: string;
+      isDefault: boolean;
+      latitude: number | null;
+      longitude: number | null;
+    }
   ) {
     const repository = this.manager.getRepository(CustomerAddress);
     const existing = await repository.findOne({
       where: { userId, label: address.label }
     });
-    if (existing) return existing;
+    if (existing) {
+      if (existing.latitude === null || existing.longitude === null)
+        return repository.save(
+          repository.merge(existing, {
+            latitude: address.latitude,
+            longitude: address.longitude
+          })
+        );
+      return existing;
+    }
     // Respect a default the developer chose in the app.
     const hasDefault = await repository.exists({
       where: { userId, isDefault: true }
@@ -103,6 +140,8 @@ export class DevelopmentOrderFixtureRepository implements DevelopmentOrderWriter
         label: address.label,
         line: address.line,
         note: address.note,
+        latitude: address.latitude,
+        longitude: address.longitude,
         isDefault: address.isDefault && !hasDefault
       })
     );
@@ -111,19 +150,40 @@ export class DevelopmentOrderFixtureRepository implements DevelopmentOrderWriter
   async ensureHistoricOrder(
     customer: { id: string; phone: string },
     driverId: string | null,
-    address: { label: string; line: string; note: string | null },
+    address: {
+      label: string;
+      line: string;
+      note: string | null;
+      latitude: number | null;
+      longitude: number | null;
+    },
     fixture: OrderHistoryFixture
   ): Promise<void> {
     const orders = this.manager.getRepository(Order);
-    if (
-      await orders.exists({
-        where: { customerUserId: customer.id, idempotencyKey: fixture.key }
-      })
-    )
-      return;
     const store = await this.manager
       .getRepository(Store)
       .findOneByOrFail({ slug: fixture.storeSlug });
+    const existing = await orders.findOne({
+      where: { customerUserId: customer.id, idempotencyKey: fixture.key }
+    });
+    if (existing) {
+      if (
+        existing.pickupLatitude === null ||
+        existing.pickupLongitude === null ||
+        existing.dropoffLatitude === null ||
+        existing.dropoffLongitude === null
+      )
+        await orders.update(
+          { id: existing.id },
+          {
+            pickupLatitude: store.pickupLatitude,
+            pickupLongitude: store.pickupLongitude,
+            dropoffLatitude: address.latitude,
+            dropoffLongitude: address.longitude
+          }
+        );
+      return;
+    }
     const lines = [];
     for (const item of fixture.items) {
       const product = await this.manager
@@ -157,6 +217,10 @@ export class DevelopmentOrderFixtureRepository implements DevelopmentOrderWriter
         customerPhone: customer.phone,
         deliveryLabel: address.label,
         deliveryLine: address.line,
+        pickupLatitude: store.pickupLatitude,
+        pickupLongitude: store.pickupLongitude,
+        dropoffLatitude: address.latitude,
+        dropoffLongitude: address.longitude,
         deliveryNote: address.note,
         customerNote: null,
         idempotencyKey: fixture.key,

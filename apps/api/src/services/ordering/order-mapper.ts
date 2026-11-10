@@ -92,11 +92,36 @@ export function toDelivery(
 ): DeliveryDto {
   const detail = toOrderDetail(order);
   if (assignedToViewer)
-    return { ...detail, customerPhone: order.customerPhone };
+    return {
+      ...detail,
+      customerPhone: order.customerPhone,
+      pickupLocation:
+        order.pickupLatitude === null || order.pickupLongitude === null
+          ? null
+          : {
+              latitude: order.pickupLatitude,
+              longitude: order.pickupLongitude
+            },
+      dropoffLocation:
+        order.dropoffLatitude === null || order.dropoffLongitude === null
+          ? null
+          : {
+              latitude: order.dropoffLatitude,
+              longitude: order.dropoffLongitude
+            }
+    };
   return {
     ...detail,
     customerNote: null,
     delivery: { label: "", line: deliveryArea(order.deliveryLine), note: null },
-    customerPhone: null
+    customerPhone: null,
+    pickupLocation:
+      order.pickupLatitude === null || order.pickupLongitude === null
+        ? null
+        : {
+            latitude: order.pickupLatitude,
+            longitude: order.pickupLongitude
+          },
+    dropoffLocation: null
   };
 }

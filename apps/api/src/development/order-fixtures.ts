@@ -29,12 +29,16 @@ export const DEVELOPMENT_ADDRESSES = [
   {
     label: "Nhà",
     line: "12 Nguyễn Trãi, P. Bến Thành, Q.1, TP. Hồ Chí Minh",
+    latitude: 10.7684,
+    longitude: 106.6941,
     note: "Gọi trước khi giao",
     isDefault: true
   },
   {
     label: "Công ty",
     line: "75 Hai Bà Trưng, P. Bến Nghé, Q.1, TP. Hồ Chí Minh",
+    latitude: 10.7784,
+    longitude: 106.7021,
     note: "Gửi lễ tân tầng 1",
     isDefault: false
   }
@@ -44,24 +48,32 @@ export const DEVELOPMENT_ACTIVITY_ADDRESSES = [
   {
     label: "Nhà",
     line: "48 Lý Tự Trọng, P. Bến Nghé, Q.1, TP. Hồ Chí Minh",
+    latitude: 10.7767,
+    longitude: 106.7008,
     note: "Nhà có cổng xanh",
     isDefault: true
   },
   {
     label: "Nhà",
     line: "210 Điện Biên Phủ, P.7, Q.3, TP. Hồ Chí Minh",
+    latitude: 10.782,
+    longitude: 106.687,
     note: "Gọi khi tới hẻm",
     isDefault: true
   },
   {
     label: "Nhà",
     line: "15 Nguyễn Hữu Cảnh, P.22, Q. Bình Thạnh, TP. Hồ Chí Minh",
+    latitude: 10.7947,
+    longitude: 106.715,
     note: "Gửi bảo vệ sảnh B",
     isDefault: true
   },
   {
     label: "Nhà",
     line: "92 Phan Xích Long, P.2, Q. Phú Nhuận, TP. Hồ Chí Minh",
+    latitude: 10.7988,
+    longitude: 106.6878,
     note: "Giao trước 21:00",
     isDefault: true
   }
@@ -352,14 +364,31 @@ export const DEVELOPMENT_ACTIVITY_ORDERS: OrderHistoryFixture[] = [
 
 export interface DevelopmentOrderWriter {
   ensureAccount(phone: string, role: ApplicationRole): Promise<string>;
+  ensureDriverProfile(
+    userId: string,
+    displayName: string,
+    vehiclePlate: string
+  ): Promise<void>;
   upsertAddress(
     userId: string,
     address: (typeof DEVELOPMENT_ADDRESSES)[number]
-  ): Promise<{ label: string; line: string; note: string | null }>;
+  ): Promise<{
+    label: string;
+    line: string;
+    note: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  }>;
   ensureHistoricOrder(
     customer: { id: string; phone: string },
     driverId: string | null,
-    address: { label: string; line: string; note: string | null },
+    address: {
+      label: string;
+      line: string;
+      note: string | null;
+      latitude: number | null;
+      longitude: number | null;
+    },
     fixture: OrderHistoryFixture
   ): Promise<void>;
 }
@@ -376,9 +405,15 @@ export async function seedDevelopmentOrders(
     canonicalizeVietnamesePhone(DEVELOPMENT_DRIVER_PHONE),
     ApplicationRole.DRIVER
   );
-  await writer.ensureAccount(
+  await writer.ensureDriverProfile(driverId, "Tài xế An", "59-A1 000.03");
+  const extraDriverId = await writer.ensureAccount(
     canonicalizeVietnamesePhone(DEVELOPMENT_EXTRA_DRIVER_PHONE),
     ApplicationRole.DRIVER
+  );
+  await writer.ensureDriverProfile(
+    extraDriverId,
+    "Tài xế Bình",
+    "59-A1 002.01"
   );
   const addresses = [];
   for (const address of DEVELOPMENT_ADDRESSES)
@@ -400,7 +435,13 @@ export async function seedDevelopmentOrders(
   };
   const homes = new Map<
     string,
-    { label: string; line: string; note: string | null }
+    {
+      label: string;
+      line: string;
+      note: string | null;
+      latitude: number | null;
+      longitude: number | null;
+    }
   >();
   for (const [index, phone] of DEVELOPMENT_ACTIVITY_CUSTOMER_PHONES.entries()) {
     const customer = await account(phone, ApplicationRole.CUSTOMER);
@@ -412,8 +453,14 @@ export async function seedDevelopmentOrders(
       )
     );
   }
-  for (const phone of DEVELOPMENT_ACTIVITY_DRIVER_PHONES)
-    await account(phone, ApplicationRole.DRIVER);
+  for (const [index, phone] of DEVELOPMENT_ACTIVITY_DRIVER_PHONES.entries()) {
+    const driver = await account(phone, ApplicationRole.DRIVER);
+    await writer.ensureDriverProfile(
+      driver.id,
+      `Tài xế DEV ${index + 2}`,
+      `59-A1 02${index + 2}`
+    );
+  }
   for (const order of DEVELOPMENT_ACTIVITY_ORDERS) {
     const customer = await account(
       order.customerPhone!,

@@ -49,4 +49,25 @@ describe("createApiRequest", () => {
     await expect(request("/x")).rejects.toBeInstanceOf(ApiError);
     await expect(request("/x")).rejects.toMatchObject({ status: "network" });
   });
+
+  it("bounds a connection that never answers", async () => {
+    vi.useFakeTimers();
+    try {
+      const request = createApiRequest(
+        "http://api",
+        async () => null,
+        () => new Promise<Response>(() => undefined),
+        50
+      );
+      const result = expect(request("/x")).rejects.toMatchObject({
+        status: "network",
+        message: "Máy chủ chưa phản hồi. Vui lòng thử lại."
+      });
+
+      await vi.advanceTimersByTimeAsync(50);
+      await result;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

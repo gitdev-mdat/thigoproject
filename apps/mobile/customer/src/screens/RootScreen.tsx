@@ -29,10 +29,14 @@ export function RootScreen() {
       <SafeAreaView style={styles.center}>
         <View style={styles.panel}>
           <Text style={styles.title} accessibilityRole="header">
-            Chưa kết nối được THIGO
+            {session.restoreFailure === "network"
+              ? "Chưa kết nối được THIGO"
+              : "THIGO đang tạm gián đoạn"}
           </Text>
           <Text style={styles.help}>
-            Kiểm tra kết nối mạng rồi thử lại. Bạn vẫn đang đăng nhập.
+            {session.restoreFailure === "network"
+              ? "Kiểm tra kết nối mạng rồi thử lại. Bạn vẫn đang đăng nhập."
+              : "Máy chủ chưa thể khôi phục phiên. Vui lòng thử lại sau ít phút. Bạn vẫn đang đăng nhập."}
           </Text>
           <Button
             label="Thử lại"

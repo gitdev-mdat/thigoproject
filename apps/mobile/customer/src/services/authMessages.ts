@@ -5,6 +5,16 @@ export const CONNECTION_FAILED_MESSAGE =
 export const TIMEOUT_MESSAGE =
   "Máy chủ phản hồi quá lâu. Kiểm tra mạng rồi thử lại.";
 
+export type RestoreFailure = "network" | "server";
+
+/** A reachable API/server failure must not be presented as a device network issue. */
+export function restoreFailureKind(error: unknown): RestoreFailure {
+  return error instanceof AuthError &&
+    (error.code === "network" || error.code === "timeout")
+    ? "network"
+    : "server";
+}
+
 export function authErrorMessage(
   error: unknown,
   stage: "request" | "verify"

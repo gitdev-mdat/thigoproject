@@ -70,7 +70,9 @@ describe("merchant application input", () => {
         category: "FOOD",
         description: "Bún chả than hoa",
         addressLine: "12 Lý Tự Trọng, Q.1",
-        phone: "+84901234567"
+        phone: "+84901234567",
+        pickupLatitude: null,
+        pickupLongitude: null
       },
       contactName: "Nguyễn Văn An"
     });

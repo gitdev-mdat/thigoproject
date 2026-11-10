@@ -6,6 +6,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import { OrderStatus } from "../../entities/ordering/order.entity.js";
 import type { CatalogRepository } from "../../repositories/catalog/catalog.repository.js";
+import type { DispatchRepository } from "../../repositories/driver/dispatch.repository.js";
 import type { OrderRepository } from "../../repositories/ordering/order.repository.js";
 import {
   MERCHANT_TRANSITIONS,
@@ -19,13 +20,17 @@ function setup(store: object | null, order: object | null, moved = true) {
     findForStore: vi.fn(async () => order),
     transition: vi.fn(async () => moved)
   };
+  const dispatch = {
+    readyForDispatch: vi.fn(async () => moved)
+  };
   const service = new MerchantOrderService(
     {
       findStoreByOwner: vi.fn(async () => store)
     } as unknown as CatalogRepository,
-    orders as unknown as OrderRepository
+    orders as unknown as OrderRepository,
+    dispatch as unknown as DispatchRepository
   );
-  return { service, orders };
+  return { service, orders, dispatch };
 }
 
 describe("MerchantOrderService", () => {

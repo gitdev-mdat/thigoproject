@@ -5,6 +5,7 @@ import type { Delivery } from "../../types/delivery";
 import {
   formatClock,
   formatItemCount,
+  mapDirectionsUrl,
   optionsSummary,
   telUrl,
   type DeliveryStage
@@ -15,10 +16,20 @@ import { Chip } from "../Chip";
 import { CashToCollect } from "./CashToCollect";
 import { Stop } from "./Stop";
 
-type Props = { delivery: Delivery; stage: DeliveryStage };
+type Props = {
+  delivery: Delivery;
+  stage: DeliveryStage;
+  cancelling: boolean;
+  onCancel: () => void;
+};
 
 /** The driver's one active job: where to go, whom to call, what to collect. */
-export function CurrentDelivery({ delivery, stage }: Props) {
+export function CurrentDelivery({
+  delivery,
+  stage,
+  cancelling,
+  onCancel
+}: Props) {
   const pickedUp = stage.target === "dropoff";
   const phone = delivery.customerPhone;
   const call = async (number: string) => {
@@ -32,6 +43,20 @@ export function CurrentDelivery({ delivery, stage }: Props) {
     }
   };
   const claimedAt = delivery.timeline.assignedAt;
+  const destination = pickedUp
+    ? delivery.dropoffLocation
+    : delivery.pickupLocation;
+  const navigate = async () => {
+    if (!destination) return;
+    try {
+      await Linking.openURL(mapDirectionsUrl(destination));
+    } catch {
+      Alert.alert(
+        "Chưa mở được bản đồ",
+        "Hãy mở ứng dụng bản đồ và nhập địa chỉ điểm đến."
+      );
+    }
+  };
 
   return (
     <View style={styles.stack}>
@@ -61,6 +86,25 @@ export function CurrentDelivery({ delivery, stage }: Props) {
         note={delivery.delivery.note}
         active={pickedUp}
       />
+
+      <View style={styles.card}>
+        <Button
+          label={destination ? "Mở chỉ đường" : "Điểm đến chưa có tọa độ"}
+          variant="secondary"
+          prominent
+          disabled={!destination}
+          onPress={() => void navigate()}
+        />
+        {!pickedUp ? (
+          <Button
+            label="Không thể tiếp tục đơn"
+            variant="tertiary"
+            loading={cancelling}
+            loadingLabel="Đang chuyển lại đơn…"
+            onPress={onCancel}
+          />
+        ) : null}
+      </View>
 
       {phone ? (
         <View style={styles.card}>

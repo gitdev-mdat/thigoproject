@@ -89,7 +89,8 @@ export function useDeliveries() {
           previous
             ? {
                 ...previous,
-                current: action === "deliver" ? null : result,
+                current:
+                  action === "deliver" || action === "cancel" ? null : result,
                 available: previous.available.filter((d) => d.id !== id)
               }
             : previous
@@ -121,6 +122,19 @@ export function useDeliveries() {
     claim: (id: string) => void run(id, "claim"),
     pickup: (id: string) => void run(id, "pickup"),
     deliver: (id: string) => void run(id, "deliver"),
+    cancel: (id: string) => void run(id, "cancel"),
+    adoptCurrent: (delivery: Delivery) =>
+      setOverview((previous) =>
+        previous
+          ? {
+              ...previous,
+              current: delivery,
+              available: previous.available.filter(
+                (item) => item.id !== delivery.id
+              )
+            }
+          : { current: delivery, available: [], history: [] }
+      ),
     dismissNotice: () => setNotice(""),
     dismissDelivered: () => setDelivered(undefined)
   };
