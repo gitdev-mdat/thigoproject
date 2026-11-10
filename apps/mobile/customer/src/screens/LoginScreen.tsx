@@ -17,6 +17,7 @@ import { FieldMessage } from "../components/FieldMessage";
 import { Notice } from "../components/Notice";
 import { OtpField } from "../components/OtpField";
 import { PhoneField } from "../components/PhoneField";
+import { StatusBarScrim } from "../components/StatusBarScrim";
 import type { AuthSession } from "../hooks/useAuthSession";
 import { androidTopInset } from "../utils/layout";
 import { formatCountdown, formatPhone } from "../utils/phone";
@@ -58,7 +59,11 @@ export function LoginScreen({ session }: Props) {
     const subscription = Keyboard.addListener("keyboardDidShow", () =>
       scrollRef.current?.scrollTo({ y: formY.current, animated: true })
     );
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+      // Signing in replaces this screen; do not carry the keyboard over.
+      Keyboard.dismiss();
+    };
   }, []);
   return (
     <SafeAreaView style={styles.screen}>
@@ -172,6 +177,7 @@ export function LoginScreen({ session }: Props) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <StatusBarScrim color={colors.brand.primarySubtle} />
     </SafeAreaView>
   );
 }
